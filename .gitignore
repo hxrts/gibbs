@@ -1,0 +1,23 @@
+# Nix
+result
+.direnv/
+
+# Lean / Lake
+.lake/
+*.olean
+*.ilean
+*.trace
+
+# Editor
+.vscode/
+*.swp
+*~
+
+# macOS
+.DS_Store
+
+# working
+work/
+
+# llm
+.claude
