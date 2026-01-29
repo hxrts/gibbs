@@ -297,7 +297,7 @@ private theorem lipschitz_norm_le_closedBall
       (norm_add_le (f x - f x₀) (f x₀))
   have hdist' : ‖f x - f x₀‖ ≤ (K : ℝ) * a := by
     have : ‖f x - f x₀‖ = dist (f x) (f x₀) := by
-      simpa [dist_eq_norm] using (rfl : dist (f x) (f x₀) = dist (f x) (f x₀))
+      simp [dist_eq_norm]
     calc ‖f x - f x₀‖ = dist (f x) (f x₀) := this
       _ ≤ (K : ℝ) * dist x x₀ := hdist
       _ ≤ (K : ℝ) * a := by gcongr
@@ -337,7 +337,7 @@ private theorem lipschitz_step_params
         _ = ‖f x₀‖ * δ + (K : ℝ) * δ * a := by ring
         _ = ‖f x₀‖ * δ + (1 - c) * a := by
               have : (K : ℝ) * δ = 1 - c := by simp [c]
-              simp [this, mul_comm, mul_left_comm, mul_assoc]
+              simp [this]
         _ = a + (‖f x₀‖ * δ - a * c) := by ring
         _ = a := by simp [hac]
     exact le_of_eq hcalc
@@ -417,7 +417,7 @@ private theorem nhdsWithin_left_mem {t t₀ δ : ℝ} (hδ : 0 < δ)
     have hpos : (0 : ℝ) < t₀ := by linarith
     have hmem : Icc (0 : ℝ) t₀ ∈ 𝓝[≥] (0 : ℝ) := Icc_mem_nhdsGE hpos
     have hnhds : 𝓝[ Icc (0 : ℝ) (t₀ + δ) ] (0 : ℝ) = 𝓝[≥] (0 : ℝ) := by
-      simpa [nhdsWithin_Icc_eq_nhdsGE (by exact add_pos hpos hδ)]
+      simp [nhdsWithin_Icc_eq_nhdsGE (by exact add_pos hpos hδ)]
     simpa [hnhds] using hmem
   · have htpos : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm hzero)
     have hmem : Icc (0 : ℝ) t₀ ∈ 𝓝 t := Icc_mem_nhds htpos hlt
@@ -434,7 +434,7 @@ private theorem nhdsWithin_right_mem {t t₀ δ : ℝ} (ht0 : 0 ≤ t₀) (hδ :
     have hmem : Icc t₀ (t₀ + δ) ∈ 𝓝[≤] (t₀ + δ) := Icc_mem_nhdsLE hpos
     have hpos0 : (0 : ℝ) < t₀ + δ := by exact add_pos_of_nonneg_of_pos ht0 hδ
     have hnhds : 𝓝[ Icc (0 : ℝ) (t₀ + δ) ] (t₀ + δ) = 𝓝[≤] (t₀ + δ) := by
-      simpa [nhdsWithin_Icc_eq_nhdsLE hpos0]
+      simp [nhdsWithin_Icc_eq_nhdsLE hpos0]
     simpa [hnhds] using hmem
   · have htlt : t < t₀ + δ := lt_of_le_of_ne ht.2 htop
     have hmem : Icc t₀ (t₀ + δ) ∈ 𝓝 t := Icc_mem_nhds hgt htlt
@@ -631,7 +631,7 @@ private theorem lipschitz_chain_step
       exact add_nonneg (Nat.cast_nonneg n) (by norm_num)
     simpa [t₀, Nat.cast_add, add_assoc, add_comm, add_left_comm] using
       mul_nonneg hn (le_of_lt hδ)
-  have hsol0' : sol' 0 = x₀ := by simpa [sol', extendSol, hsol0, ht0]
+  have hsol0' : sol' 0 = x₀ := by simp [sol', extendSol, hsol0, ht0]
   have hderiv' : ∀ t ∈ Icc 0 (t₀ + δ),
       HasDerivWithinAt sol' (f (sol' t)) (Icc 0 (t₀ + δ)) t := by
     intro t ht
@@ -1156,7 +1156,7 @@ private theorem norm_sub_zeroAt_le (x : Q → ℝ) (q : Q) :
   intro p
   by_cases hp : p = q
   · subst hp
-    simp [zeroAt, abs_of_nonneg, abs_of_nonpos]
+    simp [zeroAt]
   · simp [zeroAt, hp]
 
 /-- Lower bound on a component using boundary inwardness and Lipschitzness. -/
@@ -1181,9 +1181,16 @@ private theorem component_lower_bound_of_boundary
     have hx' : x' q = 0 := by simp [x', zeroAt]
     exact hboundary x' q hx'
   have hnorm : ‖x - x'‖ ≤ -x q := by
-    have habs : |x q| = -x q := by simpa [abs_of_nonpos hxq]
+    have habs : |x q| = -x q := by simp [abs_of_nonpos hxq]
     simpa [x', habs] using (norm_sub_zeroAt_le x q)
-  nlinarith [hlower, hboundary', hnorm]
+  -- Use `K ≥ 0` to compare the lower bound to `K * x q`.
+  have hK : 0 ≤ (K : ℝ) := K.property
+  have hlower' : F x q ≥ -(K : ℝ) * ‖x - x'‖ := by linarith [hlower, hboundary']
+  have hmul : (K : ℝ) * ‖x - x'‖ ≤ (K : ℝ) * (-x q) :=
+    mul_le_mul_of_nonneg_left hnorm hK
+  have hneg : -(K : ℝ) * (-x q) ≤ -(K : ℝ) * ‖x - x'‖ := by
+    nlinarith [hmul]
+  nlinarith [hlower', hneg]
 
 /-- Barrier lemma: `u(t) ≥ -ε * t` for any `ε > 0`. -/
 private theorem scalar_ge_neg_eps {u u' : ℝ → ℝ} {K T ε : ℝ}
@@ -1253,62 +1260,75 @@ theorem scalar_nonneg_of_gronwall {u u' : ℝ → ℝ} {K : ℝ} {T : ℝ}
 
 /-- Derivative of `t ↦ exp(-K t)` on a right interval. -/
 private theorem hasDerivWithinAt_exp_neg_mul (K t : ℝ) :
-    HasDerivWithinAt (fun s => Real.exp (-K * s))
-      (-K * Real.exp (-K * t)) (Ici t) t := by
+    HasDerivWithinAt (fun s => Real.exp (-(K * s)))
+      (-K * Real.exp (-(K * t))) (Ici t) t := by
   -- Differentiate the exponential of a linear function.
-  have h := (Real.hasDerivAt_exp (-K * t)).comp t (hasDerivAt_const_mul (-K))
-  simpa using h.hasDerivWithinAt
+  have hlin : HasDerivAt (fun s => -(K * s)) (-K) t := by
+    -- The derivative of `s ↦ (-K) * s` is `-K`.
+    simpa [neg_mul] using (hasDerivAt_const_mul (-K) (x := t))
+  have h := (Real.hasDerivAt_exp (-(K * t))).comp t hlin
+  have h' : HasDerivAt (fun s => Real.exp (-(K * s))) (-K * Real.exp (-(K * t))) t := by
+    -- Move the scalar to the left of the product.
+    simpa [mul_comm, mul_left_comm, mul_assoc] using h
+  exact h'.hasDerivWithinAt
 
 /-! ## Exponential Weighting for Inwardness -/
 
 /-- Exponential reweighting used to remove the linear term. -/
 private def expWeight (K : ℝ) (u : ℝ → ℝ) : ℝ → ℝ :=
   -- Use `exp(-K t)` as a positive weight.
-  fun s => Real.exp (-K * s) * u s
+  (fun s => Real.exp (-(K * s))) * u
 
 /-- Continuity of the exponential weight. -/
 private theorem expWeight_continuousOn {u : ℝ → ℝ} {K T : ℝ}
     (hcont : ContinuousOn u (Icc 0 T)) :
     ContinuousOn (expWeight K u) (Icc 0 T) := by
   -- Product of continuous functions on the interval.
-  have hexp : ContinuousOn (fun s => Real.exp (-K * s)) (Icc 0 T) := by
-    exact (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn
-  simpa [expWeight] using hexp.mul hcont
+  have hlin : Continuous fun s => -(K * s) := (continuous_const.mul continuous_id).neg
+  have hexp : ContinuousOn (fun s => Real.exp (-(K * s))) (Icc 0 T) := by
+    -- Continuity of exp composed with a linear map.
+    exact (Real.continuous_exp.comp hlin).continuousOn
+  simpa [expWeight, Pi.mul_apply] using hexp.mul hcont
 
 /-- Derivative of the exponential weight on the right interval. -/
 private theorem expWeight_hasDerivWithinAt {u u' : ℝ → ℝ} {K T : ℝ}
     (hderiv : ∀ t ∈ Ico 0 T, HasDerivWithinAt u (u' t) (Ici t) t) :
     ∀ t ∈ Ico 0 T,
       HasDerivWithinAt (expWeight K u)
-        (fun t => Real.exp (-K * t) * (u' t - K * u t)) (Ici t) t := by
+        (Real.exp (-(K * t)) * (u' t - K * u t)) (Ici t) t := by
   -- Differentiate `exp(-K t) * u t`.
   intro t ht
   have hexp := hasDerivWithinAt_exp_neg_mul K t
   have hmul := hexp.mul (hderiv t ht)
-  have hlin : -K * Real.exp (-K * t) * u t + Real.exp (-K * t) * u' t
-      = Real.exp (-K * t) * (u' t - K * u t) := by ring
-  simpa [expWeight, hlin] using hmul
+  have hlin :
+      -(K * Real.exp (-(K * t)) * u t) + Real.exp (-(K * t)) * u' t
+        = Real.exp (-(K * t)) * (u' t - K * u t) := by ring
+  -- Rewrite the derivative into the compact form.
+  simpa [expWeight, Pi.mul_apply, hlin] using hmul
 
 /-- Sign of `expWeight` matches the sign of the original function. -/
 private theorem expWeight_le_zero_iff {u : ℝ → ℝ} {K : ℝ} {t : ℝ} :
     expWeight K u t ≤ 0 ↔ u t ≤ 0 := by
   -- `exp` is positive, so it does not change the sign.
-  have hpos : 0 < Real.exp (-K * t) := Real.exp_pos _
+  simp [expWeight, Pi.mul_apply]
+  have hpos : 0 < Real.exp (-(K * t)) := Real.exp_pos _
   constructor
   · intro hwt
-    have hcases := (mul_le_zero_iff.mp hwt)
-    rcases hcases with ⟨hneg, _⟩ | ⟨_, hneg⟩
-    · linarith
-    · exact hneg
+    by_contra hut
+    -- If `u t > 0` then the product is positive.
+    have hut' : 0 < u t := lt_of_not_ge hut
+    have hmul : 0 < Real.exp (-(K * t)) * u t := mul_pos hpos hut'
+    exact (not_le_of_gt hmul) hwt
   · intro hut
-    have hpos' : 0 ≤ Real.exp (-K * t) := hpos.le
+    have hpos' : 0 ≤ Real.exp (-(K * t)) := hpos.le
     exact mul_nonpos_of_nonneg_of_nonpos hpos' hut
 
 /-- Sign of `expWeight` matches the sign of the original function. -/
 private theorem expWeight_nonneg_iff {u : ℝ → ℝ} {K : ℝ} {t : ℝ} :
     0 ≤ expWeight K u t ↔ 0 ≤ u t := by
   -- `exp` is positive, so it does not change the sign.
-  have hpos : 0 < Real.exp (-K * t) := Real.exp_pos _
+  simp [expWeight, Pi.mul_apply]
+  have hpos : 0 < Real.exp (-(K * t)) := Real.exp_pos _
   constructor
   · intro hwt
     have hcases := (mul_nonneg_iff.mp hwt)
@@ -1316,26 +1336,26 @@ private theorem expWeight_nonneg_iff {u : ℝ → ℝ} {K : ℝ} {t : ℝ} :
     · exact hnonneg
     · linarith
   · intro hut
-    have hpos' : 0 ≤ Real.exp (-K * t) := hpos.le
+    have hpos' : 0 ≤ Real.exp (-(K * t)) := hpos.le
     exact mul_nonneg hpos' hut
 
 /-- Inwardness implies nonnegative derivative for the weighted function. -/
 private theorem expWeight_deriv_nonneg_of_inward {u u' : ℝ → ℝ} {K T : ℝ}
     (hbound : ∀ t ∈ Ico 0 T, u t ≤ 0 → K * u t ≤ u' t) :
     ∀ t ∈ Ico 0 T, expWeight K u t ≤ 0 →
-      0 ≤ Real.exp (-K * t) * (u' t - K * u t) := by
+      0 ≤ Real.exp (-(K * t)) * (u' t - K * u t) := by
   -- Use inwardness and positivity of `exp`.
   intro t ht hw
   have hsign : u t ≤ 0 := (expWeight_le_zero_iff (u := u) (K := K) (t := t)).1 hw
   have hineq : 0 ≤ u' t - K * u t := by
     have := hbound t ht hsign
     nlinarith
-  have hpos : 0 ≤ Real.exp (-K * t) := (Real.exp_pos _).le
+  have hpos : 0 ≤ Real.exp (-(K * t)) := (Real.exp_pos _).le
   exact mul_nonneg hpos hineq
 
 /-- Nonnegativity from inwardness using an exponential change of variables. -/
 private theorem scalar_nonneg_of_inward {u u' : ℝ → ℝ} {K T : ℝ}
-    (hK : 0 ≤ K)
+    (_hK : 0 ≤ K)
     (hcont : ContinuousOn u (Icc 0 T))
     (hderiv : ∀ t ∈ Ico 0 T, HasDerivWithinAt u (u' t) (Ici t) t)
     (hu0 : 0 ≤ u 0)
@@ -1345,20 +1365,24 @@ private theorem scalar_nonneg_of_inward {u u' : ℝ → ℝ} {K T : ℝ}
   let w : ℝ → ℝ := expWeight K u
   have hcont_w := expWeight_continuousOn (u := u) (K := K) (T := T) hcont
   have hderiv_w := expWeight_hasDerivWithinAt (u := u) (u' := u') (K := K) (T := T) hderiv
+  have hw0 : 0 ≤ w 0 := by
+    -- At t = 0, the exponential weight is 1, so w 0 = u 0.
+    simpa [w, expWeight] using hu0
   have hbound_w : ∀ t ∈ Ico 0 T, w t ≤ 0 →
-      - (0 : ℝ) * w t ≤ Real.exp (-K * t) * (u' t - K * u t) := by
+      - (0 : ℝ) * w t ≤ Real.exp (-(K * t)) * (u' t - K * u t) := by
     -- Reduce to `expWeight_deriv_nonneg_of_inward`.
     intro t ht hw
     have hnonneg := expWeight_deriv_nonneg_of_inward (u := u) (u' := u') (K := K) (T := T) hbound t ht
     simpa [w] using hnonneg hw
   have hnonneg_w := scalar_nonneg_of_gronwall
-    (u := w) (u' := fun t => Real.exp (-K * t) * (u' t - K * u t))
-    (K := 0) (T := T) (by nlinarith) hcont_w hderiv_w
-    (by simpa [w] using hu0) hbound_w
+    (u := w) (u' := fun t => Real.exp (-(K * t)) * (u' t - K * u t))
+    (K := 0) (T := T) (by nlinarith) hcont_w hderiv_w hw0
+    hbound_w
   intro t ht
   have hnonneg := hnonneg_w t ht
   exact (expWeight_nonneg_iff (u := u) (K := K) (t := t)).1 (by simpa [w] using hnonneg)
 
+omit [Fintype Q] in
 /-- Continuity of a single component. -/
 private theorem component_continuousOn
     (sol : ℝ → (Q → ℝ)) (hcont : Continuous sol) (q : Q) (t : ℝ) :
@@ -1393,8 +1417,8 @@ private theorem component_hasDerivWithinAt
 
 /-- A single component remains nonnegative under boundary inwardness. -/
 private theorem component_nonneg_of_boundary
-    (C : MeanFieldChoreography Q) (sol : ℝ → (Q → ℝ))
-    (hLip : LipschitzWith C.lipschitzConstNNReal C.drift)
+    (C : MeanFieldChoreography Q) (sol : ℝ → (Q → ℝ)) {K : ℝ≥0}
+    (hLip : LipschitzWith K C.drift)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.drift x q)
     (hx₀ : sol 0 ∈ Simplex Q) (hcont : Continuous sol)
     (hderiv : ∀ t ≥ 0, HasDerivAt sol (C.drift (sol t)) t)
@@ -1407,14 +1431,14 @@ private theorem component_nonneg_of_boundary
   have hcont_q := component_continuousOn sol hcont q t
   have hderiv_q := component_hasDerivWithinAt C sol hderiv q t
   have hbound : ∀ s ∈ Ico 0 t, (sol s q) ≤ 0 →
-      (C.lipschitzConstNNReal : ℝ) * (sol s q) ≤ C.drift (sol s) q := by
+      (K : ℝ) * (sol s q) ≤ C.drift (sol s) q := by
     -- Use boundary inwardness and Lipschitzness.
     intro s _ hsq
     exact component_lower_bound_of_boundary hLip hboundary (sol s) q hsq
-  have hK : 0 ≤ (C.lipschitzConstNNReal : ℝ) := (C.lipschitzConstNNReal).property
+  have hK : 0 ≤ (K : ℝ) := K.property
   have hnonneg := scalar_nonneg_of_inward
     (u := fun s => sol s q) (u' := fun s => C.drift (sol s) q)
-    (K := (C.lipschitzConstNNReal : ℝ)) (T := t)
+    (K := (K : ℝ)) (T := t)
     hK hcont_q hderiv_q (hx₀.1 q) hbound t ⟨le_of_lt htpos, le_rfl⟩
   simpa using hnonneg
 
@@ -1430,8 +1454,8 @@ private theorem component_nonneg_of_boundary
 
     The non-negativity step uses `scalar_nonneg_of_inward`. -/
 theorem simplex_forward_invariant
-    (C : MeanFieldChoreography Q) (sol : ℝ → (Q → ℝ))
-    (hLip : LipschitzWith C.lipschitzConstNNReal C.drift)
+    (C : MeanFieldChoreography Q) (sol : ℝ → (Q → ℝ)) {K : ℝ≥0}
+    (hLip : LipschitzWith K C.drift)
     (hcons : ∀ x, ∑ q, C.drift x q = 0)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.drift x q)
     (hx₀ : sol 0 ∈ Simplex Q) (hcont : Continuous sol)
@@ -1478,15 +1502,6 @@ private def extendChoreo (C : MeanFieldChoreography Q) : MeanFieldChoreography Q
     drift_conserves := extendDrift_conserves C
     boundary_nonneg := extendDrift_boundary_nonneg C }
 
-/-- The extended choreography keeps the same NNReal Lipschitz constant. -/
-private theorem extendChoreo_lipschitzConstNNReal (C : MeanFieldChoreography Q) :
-    (extendChoreo C).lipschitzConstNNReal = C.lipschitzConstNNReal := by
-  -- Unfold and use nonnegativity to collapse `max`.
-  ext
-  simp [extendChoreo, MeanFieldChoreography.lipschitzConstNNReal,
-    MeanFieldChoreography.lipschitzConst, toNNRealLipschitz,
-    (C.lipschitzConstNNReal).property]
-
 /-- Global existence for mean-field ODEs.
 
     Combines global existence for the extended drift (globally Lipschitz)
@@ -1506,10 +1521,11 @@ theorem global_ode_exists [Nonempty Q] (C : MeanFieldChoreography Q)
   have hsimplex : ∀ t ≥ 0, sol t ∈ Simplex Q := by
     -- Apply simplex invariance to the extended choreography.
     have hx0' : sol 0 ∈ Simplex Q := by simpa [hsol0] using hx₀
-    have hLip : LipschitzWith (extendChoreo C).lipschitzConstNNReal (extendChoreo C).drift := by
+    have hLip : LipschitzWith C.lipschitzConstNNReal (extendChoreo C).drift := by
       -- Use global Lipschitzness of the extended drift.
-      simpa [extendChoreo_lipschitzConstNNReal, extendChoreo] using C.extendDrift_lipschitz
-    exact simplex_forward_invariant (C := extendChoreo C) sol hLip hcons hboundary hx0' hcont
+      simpa [extendChoreo] using C.extendDrift_lipschitz
+    exact simplex_forward_invariant (C := extendChoreo C) (K := C.lipschitzConstNNReal)
+      sol hLip hcons hboundary hx0' hcont
       (fun t ht => by simpa using hderiv t)
   -- Step 3: On the simplex, extendDrift = drift.
   refine ⟨sol, hsol0, hcont, fun t ht => ?_⟩

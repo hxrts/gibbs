@@ -34,6 +34,7 @@ Solution Structure (Lyapunov approach).
 namespace Gibbs.MeanField
 
 open scoped Classical NNReal Matrix
+open Metric
 
 noncomputable section
 
@@ -60,18 +61,14 @@ theorem jacobian_eigenvalues_finite (F : DriftFunction Q) (x : Q → ℝ) :
 
 /-! ## Lyapunov Stability -/
 
+omit [DecidableEq Q] in
 /-- A Lyapunov function implies Lyapunov stability.
 
     **Proof strategy**: Given ε > 0, use compactness of the sphere
     ‖y − x‖ = ε to find the minimum m of V on it (m > 0). By continuity
     of V at x with V(x) = 0, find δ with V(y) < m for ‖y − x‖ < δ.
     V decreasing along trajectories keeps V(sol t) < m, forcing
-    ‖sol t − x‖ < ε.
-
-    **Sorry reason**: The proof is standard topology (compactness of the
-    sphere + continuity of V + monotonicity). However, `ODESolution` is
-    currently a placeholder. This proof becomes meaningful once
-    `ODESolution` is replaced with a real ODE solution. -/
+    ‖sol t − x‖ < ε. -/
 theorem lyapunov_implies_stable [Nonempty Q]
     (C : MeanFieldChoreography Q) (x : Q → ℝ)
     (hx : IsEquilibrium C x)
@@ -79,10 +76,11 @@ theorem lyapunov_implies_stable [Nonempty Q]
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q)
     (L : LyapunovData C.drift x) :
     IsLyapunovStable C x hcons hboundary := by
+  classical
   refine ⟨hx, fun ε hε => ?_⟩
-  -- Minimum of V on the sphere of radius ε
-  have hcompact : IsCompact (sphere x ε) := isCompact_sphere x ε
-  have hnonempty : (sphere x ε).Nonempty := by
+  -- Minimum of V on the sphere of radius ε.
+  have hcompact : IsCompact (Metric.sphere x ε) := isCompact_sphere x ε
+  have hnonempty : (Metric.sphere x ε).Nonempty := by
     simpa using (NormedSpace.sphere_nonempty (x := x) (r := ε)).2 (le_of_lt hε)
   obtain ⟨y, hyS, hymin⟩ := hcompact.exists_isMinOn hnonempty L.V_cont.continuousOn
   let m : ℝ := L.V y
@@ -90,26 +88,27 @@ theorem lyapunov_implies_stable [Nonempty Q]
     have hy_ne : y ≠ x := by
       exact Metric.ne_of_mem_sphere hyS (ne_of_gt hε)
     simpa [m] using L.V_pos y hy_ne
-  -- continuity at x gives a δ-ball where V < m
-  have hV_at_x : Filter.Tendsto L.V (nhds x) (nhds 0) := by
-    simpa [L.V_zero] using L.V_cont.tendsto x
-  have hmem : {z | dist (L.V z) 0 < m} ∈ nhds x :=
-    (Metric.tendsto_iff.1 hV_at_x) m hm_pos
-  obtain ⟨δ, hδpos, hδball⟩ := Metric.mem_nhds_iff.mp hmem
+  -- Continuity at x gives a δ-ball where V < m.
+  have hcont := (Metric.continuousAt_iff).1 (L.V_cont.continuousAt : ContinuousAt L.V x) m hm_pos
+  obtain ⟨δ, hδpos, hδ⟩ := hcont
   refine ⟨min δ ε, lt_min hδpos hε, ?_⟩
   intro x₀ hx₀ hdist t ht
-  have hdistδ : ‖x₀ - x‖ < δ := lt_of_lt_of_le hdist (min_le_left _ _)
-  have hdistε : ‖x₀ - x‖ < ε := lt_of_lt_of_le hdist (min_le_right _ _)
+  have hdistδ : dist x₀ x < δ := by
+    have h' := lt_of_lt_of_le hdist (min_le_left _ _)
+    simpa [dist_eq_norm, norm_sub_rev] using h'
+  have hdistε : dist x₀ x < ε := by
+    have h' := lt_of_lt_of_le hdist (min_le_right _ _)
+    simpa [dist_eq_norm, norm_sub_rev] using h'
+  have hVdist : dist (L.V x₀) (L.V x) < m := hδ hdistδ
+  have hVdist' : dist (L.V x₀) 0 < m := by
+    simpa [L.V_zero] using hVdist
+  have hVabs : |L.V x₀| < m := by
+    simpa [dist_eq_norm, Real.norm_eq_abs] using hVdist'
   have hVx₀ : L.V x₀ < m := by
-    have hx₀ball : x₀ ∈ Metric.ball x δ := by
-      simpa [Metric.mem_ball, dist_eq_norm, norm_sub_rev] using hdistδ
-    have hVdist : dist (L.V x₀) 0 < m := hδball hx₀ball
-    have hVx₀_nonneg : 0 ≤ L.V x₀ := L.V_nonneg x₀
-    have hVabs : |L.V x₀| < m := by
-      simpa [dist_eq_norm, Real.norm_eq_abs] using hVdist
-    simpa [abs_of_nonneg hVx₀_nonneg] using hVabs
-  -- Set up the canonical solution and its derivative property
-  let sol : ℝ → (Q → ℝ) := ODESolution C x₀ hcons hboundary
+    have hVnonneg : 0 ≤ L.V x₀ := L.V_nonneg x₀
+    simpa [abs_of_nonneg hVnonneg] using hVabs
+  -- Set up the canonical solution and its derivative property.
+  let sol : ℝ → (Q → ℝ) := ODESolution C x₀ (hx₀ := hx₀) hcons hboundary
   have hsol0 : sol 0 = x₀ := by
     simpa [sol, ODESolution] using
       (MeanFieldChoreography.solution_init (C := C) x₀ hx₀ hcons hboundary)
@@ -124,27 +123,28 @@ theorem lyapunov_implies_stable [Nonempty Q]
     exact lt_of_le_of_lt hVt_le hV0_lt
   -- If the trajectory ever leaves the ε-ball, it must hit the sphere.
   by_contra hnot
-  have hge : ε ≤ ‖sol t - x‖ := le_of_not_lt hnot
+  have hge : ε ≤ ‖sol t - x‖ := le_of_not_gt hnot
   have hcont_sol : Continuous sol := by
     simpa [sol, ODESolution] using
       (MeanFieldChoreography.solution_continuous (C := C) x₀ hx₀ hcons hboundary)
   have hcont_norm : Continuous fun s => ‖sol s - x‖ :=
     (continuous_norm.comp (hcont_sol.sub continuous_const))
-  have hcont_norm_on : ContinuousOn (fun s => ‖sol s - x‖) (Icc (0 : ℝ) t) :=
+  have hcont_norm_on : ContinuousOn (fun s => ‖sol s - x‖) (Set.Icc (0 : ℝ) t) :=
     hcont_norm.continuousOn
   have hdist0 : ‖sol 0 - x‖ ≤ ε := by
-    have : ‖sol 0 - x‖ < ε := by simpa [hsol0, norm_sub_rev] using hdistε
+    have : ‖sol 0 - x‖ < ε := by
+      simpa [hsol0, dist_eq_norm, norm_sub_rev] using hdistε
     exact le_of_lt this
-  have hεmem : ε ∈ Icc (‖sol 0 - x‖) (‖sol t - x‖) := ⟨hdist0, hge⟩
+  have hεmem : ε ∈ Set.Icc (‖sol 0 - x‖) (‖sol t - x‖) := ⟨hdist0, hge⟩
   obtain ⟨s, hsIcc, hs_eq⟩ :=
     (intermediate_value_Icc (a := (0 : ℝ)) (b := t) ht.le hcont_norm_on) hεmem
-  have hmem_sphere : sol s ∈ sphere x ε := by
+  have hmem_sphere : sol s ∈ Metric.sphere x ε := by
     have : dist (sol s) x = ε := by
       simpa [dist_eq_norm, norm_sub_rev] using hs_eq
     simpa [Metric.mem_sphere] using this
   have hVmin : m ≤ L.V (sol s) := by
-    have := hymin (sol s) hmem_sphere
-    simpa [m] using this
+    have := hymin hmem_sphere
+    simpa [m, Set.mem_setOf_eq] using this
   have hVsols_le : L.V (sol s) ≤ L.V (sol 0) := by
     exact hVdec 0 s (by linarith) hsIcc.1
   have hVsols_lt : L.V (sol s) < m := by
@@ -154,15 +154,8 @@ theorem lyapunov_implies_stable [Nonempty Q]
 
 /-! ## Asymptotic Stability -/
 
-/-- A strict Lyapunov function implies asymptotic stability.
-
-    **Proof**: Lyapunov stability from `lyapunov_implies_stable`.
-    For convergence: V(sol t) → 0 by `V_to_zero`. Since V is continuous
-    with V(x) = 0 and V(y) > 0 for y ≠ x, convergence V → 0 forces
-    sol t → x.
-
-    **Sorry reason**: Depends on `lyapunov_implies_stable` and a real
-    `ODESolution`. The convergence argument itself is standard. -/
+omit [DecidableEq Q] in
+/-- A strict Lyapunov function implies asymptotic stability. -/
 theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
     (C : MeanFieldChoreography Q) (x : Q → ℝ)
     (hx : IsEquilibrium C x)
@@ -170,6 +163,7 @@ theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q)
     (L : StrictLyapunovData C.drift x) :
     IsAsymptoticallyStable' C x hcons hboundary := by
+  classical
   have hstable : IsLyapunovStable C x hcons hboundary :=
     lyapunov_implies_stable C x hx hcons hboundary L.toLyapunovData
   refine ⟨hstable, ?_⟩
@@ -177,7 +171,7 @@ theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
   obtain ⟨δ, hδpos, hδ⟩ := hstable.2 1 (by norm_num)
   refine ⟨δ, hδpos, ?_⟩
   intro x₀ hx₀ hx₀dist
-  let sol : ℝ → (Q → ℝ) := ODESolution C x₀ hcons hboundary
+  let sol : ℝ → (Q → ℝ) := ODESolution C x₀ (hx₀ := hx₀) hcons hboundary
   have hderiv : ∀ s ≥ 0, HasDerivAt sol (C.drift (sol s)) s := by
     intro s hs
     simpa [sol, ODESolution] using
@@ -194,24 +188,25 @@ theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
   by_cases hε1 : ε ≤ 1
   · -- Build a positive lower bound of V away from x inside the closed ball.
     have hcompact : IsCompact (Metric.closedBall x 1) := isCompact_closedBall x 1
+    have hclosed :
+        IsClosed (Metric.closedBall x 1 ∩ (Metric.ball x ε)ᶜ) := by
+      exact isClosed_closedBall.inter isOpen_ball.isClosed_compl
     have hScompact :
-        IsCompact (Metric.closedBall x 1 \ Metric.ball x ε) :=
-      IsCompact.of_isClosed_subset hcompact
-        (isClosed_closedBall.diff isOpen_ball) (by intro y hy; exact hy.1)
+        IsCompact (Metric.closedBall x 1 ∩ (Metric.ball x ε)ᶜ) :=
+      hcompact.of_isClosed_subset hclosed (by intro y hy; exact hy.1)
     have hSnonempty :
-        (Metric.closedBall x 1 \ Metric.ball x ε).Nonempty := by
-      -- Sphere of radius ε is contained in the closed ball and outside the ball.
+        (Metric.closedBall x 1 ∩ (Metric.ball x ε)ᶜ).Nonempty := by
       obtain ⟨y, hy⟩ := (NormedSpace.sphere_nonempty (x := x) (r := ε)).2 (le_of_lt hε)
       refine ⟨y, ?_⟩
       have hy_closed : y ∈ Metric.closedBall x 1 := by
         have hdist : dist y x = ε := by simpa [Metric.mem_sphere] using hy
         have hle : dist y x ≤ 1 := by linarith [hdist, hε1]
         simpa [Metric.mem_closedBall] using hle
-      have hy_not : y ∉ Metric.ball x ε := by
+      have hy_not : y ∈ (Metric.ball x ε)ᶜ := by
         intro hball
         have hdist' : dist y x < ε := by simpa [Metric.mem_ball] using hball
         have hdist : dist y x = ε := by simpa [Metric.mem_sphere] using hy
-        exact (lt_irrefl ε) (by simpa [hdist] using hdist')
+        linarith [hdist, hdist']
       exact ⟨hy_closed, hy_not⟩
     obtain ⟨y, hyS, hymin⟩ :=
       hScompact.exists_isMinOn hSnonempty L.V_cont.continuousOn
@@ -224,7 +219,7 @@ theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
       have hy_ne : y ≠ x := by
         intro h
         subst h
-        simpa [dist_self] using hdist0
+        simp [dist_self] at hdist0
       simpa [m] using L.V_pos y hy_ne
     obtain ⟨N0, hN0⟩ := (Metric.tendsto_atTop.1 hV_to_zero) m hm_pos
     let N : ℝ := max N0 0
@@ -245,10 +240,10 @@ theorem strict_lyapunov_implies_asymptotic [Nonempty Q]
       simpa [Metric.mem_closedBall] using hle
     have hball : sol t ∈ Metric.ball x ε := by
       by_contra hnot
-      have hmem : sol t ∈ Metric.closedBall x 1 \ Metric.ball x ε := ⟨hmem_closed, hnot⟩
+      have hmem : sol t ∈ Metric.closedBall x 1 ∩ (Metric.ball x ε)ᶜ := ⟨hmem_closed, hnot⟩
       have hVmin : m ≤ L.V (sol t) := by
-        have := hymin (sol t) hmem
-        simpa [m] using this
+        have := hymin hmem
+        simpa [m, Set.mem_setOf_eq] using this
       exact (not_lt_of_ge hVmin) hVlt
     simpa [Metric.mem_ball, dist_eq_norm] using hball
   · -- If ε > 1, the trajectory is already within ε.
@@ -286,27 +281,6 @@ theorem drift_linearization
   rw [Jacobian]
   exact this
 
-/-! ## Hurwitz Implies Lyapunov Function -/
-
-/-- Hurwitz condition implies existence of a strict Lyapunov function.
-
-    **Mathematical content**: The quadratic Lyapunov function
-    V(y) = (y − x)ᵀ P (y − x) where P solves the Lyapunov equation
-    AᵀP + PA = −I works. The solution is P = ∫₀^∞ e^{tAᵀ} e^{tA} dt,
-    which converges if and only if A is Hurwitz.
-
-    **Current status**: This lemma exposes the required data explicitly.
-    A full proof requires Lyapunov equation theory (matrix exponential
-    bounds / solvability) that is not yet in Mathlib. -/
-theorem hurwitz_implies_lyapunov_exists
-    (F : DriftFunction Q) (x : Q → ℝ)
-    (_hfp : IsFixedPoint F x)
-    (_hd : DifferentiableAt ℝ F x)
-    (_hH : IsHurwitz F x)
-    (hLyap : StrictLyapunovData F x) :
-    StrictLyapunovData F x :=
-  hLyap
-
 /-! ## Main Theorem -/
 
 /-- Linearized stability implies asymptotic stability via Lyapunov functions.
@@ -320,12 +294,11 @@ theorem linear_stable_implies_asymptotic [Nonempty Q]
     (hlin : IsLinearlyStable C.drift x) (hx : x ∈ Simplex Q)
     (hcons : ∀ x, ∑ q, C.extendDrift x q = 0)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q)
-    (hd : DifferentiableAt ℝ C.drift x)
+    (_hd : DifferentiableAt ℝ C.drift x)
     (hLyap : StrictLyapunovData C.drift x) :
     IsAsymptoticallyStable' C x hcons hboundary := by
-  have ⟨hfp, hH⟩ := hlin
-  exact strict_lyapunov_implies_asymptotic C x ⟨hx, hfp⟩ hcons hboundary
-    (hurwitz_implies_lyapunov_exists C.drift x hfp hd hH hLyap)
+  have ⟨hfp, _hH⟩ := hlin
+  exact strict_lyapunov_implies_asymptotic C x ⟨hx, hfp⟩ hcons hboundary hLyap
 
 end
 

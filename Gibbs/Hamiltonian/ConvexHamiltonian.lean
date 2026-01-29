@@ -142,6 +142,29 @@ theorem quadraticKinetic_diff (n : ℕ) : Differentiable ℝ (quadraticKinetic n
   apply Differentiable.const_mul
   exact differentiable_id.norm_sq ℝ
 
+/-- Gradient of quadratic kinetic energy is the identity map. -/
+theorem quadraticKinetic_grad (n : ℕ) (p : Config n) :
+    gradient (quadraticKinetic n) p = p := by
+  -- Compare inner products using the Riesz representation.
+  apply ext_inner_right ℝ
+  intro z
+  have hdiff : DifferentiableAt ℝ (fun q : Config n => ‖q‖ ^ 2) p :=
+    (differentiableAt_id).norm_sq ℝ
+  have hfd : fderiv ℝ (quadraticKinetic n) p = innerSL ℝ p := by
+    -- Evaluate the derivative on an arbitrary vector `z`.
+    ext z
+    have hfd' :
+        fderiv ℝ (quadraticKinetic n) p = (1 / 2 : ℝ) • (2 • innerSL ℝ p) := by
+      -- Unfold the quadratic and use `fderiv_const_mul`.
+      change fderiv ℝ (fun q : Config n => (1 / 2 : ℝ) * ‖q‖ ^ 2) p =
+        (1 / 2 : ℝ) • (2 • innerSL ℝ p)
+      simpa [fderiv_norm_sq_apply, smul_smul] using
+        (fderiv_const_mul (x := p) hdiff (1 / 2 : ℝ))
+    have hcoeff : (1 / 2 : ℝ) * 2 = 1 := by norm_num
+    have hfdz := congrArg (fun L => L z) hfd'
+    simpa [ContinuousLinearMap.smul_apply, innerSL_apply_apply, smul_smul, hcoeff] using hfdz
+  simp [gradient, hfd, toDual_symm_apply, innerSL_apply_apply]
+
 /-- Quadratic potential energy: V(q) = ½‖q‖².
     This is the harmonic potential with unit spring constant. -/
 def quadraticPotential (n : ℕ) : Config n → ℝ :=

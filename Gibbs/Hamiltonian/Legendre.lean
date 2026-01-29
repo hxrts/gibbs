@@ -1,4 +1,5 @@
 import Gibbs.Hamiltonian.ConvexHamiltonian
+import Gibbs.MeanField.ODE
 import Mathlib.Analysis.Calculus.Deriv.AffineMap
 import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.Convex.Deriv
@@ -261,6 +262,88 @@ theorem bregman_lyapunov_candidate {f : Config n → ℝ}
     exact bregman_nonneg hconv.convexOn hdiff x x_eq
   · intro x
     exact bregman_eq_zero_iff hconv hdiff x x_eq
+
+/-! ## Connection to Mean-Field Stability -/
+
+/-! ### Config/Function Conversion -/
+
+/-- Convert a configuration vector to a function on `Fin n`. -/
+private noncomputable def fromConfig (x : Config n) : Fin n → ℝ :=
+  -- Use the EuclideanSpace equivalence.
+  (EuclideanSpace.equiv (ι := Fin n) (𝕜 := ℝ)) x
+
+/-- Convert a `Fin n → ℝ` function to a configuration vector. -/
+private noncomputable def toConfig (x : Fin n → ℝ) : Config n :=
+  -- Use the inverse EuclideanSpace equivalence.
+  (EuclideanSpace.equiv (ι := Fin n) (𝕜 := ℝ)).symm x
+
+/-- Conversion round-trip: `fromConfig (toConfig x) = x`. -/
+private theorem fromConfig_toConfig (x : Fin n → ℝ) : fromConfig (toConfig x) = x := by
+  -- Apply the equivalence's `apply_symm_apply`.
+  simpa [fromConfig, toConfig] using
+    (ContinuousLinearEquiv.apply_symm_apply (EuclideanSpace.equiv (Fin n) ℝ) x)
+
+/-- Conversion round-trip: `toConfig (fromConfig x) = x`. -/
+private theorem toConfig_fromConfig (x : Config n) : toConfig (fromConfig x) = x := by
+  -- Apply the equivalence's `symm_apply_apply`.
+  simp [fromConfig, toConfig]
+
+/-- Bregman positivity away from the equilibrium. -/
+private theorem bregman_pos_of_ne {f : Config n → ℝ}
+    (hconv : StrictConvexOn ℝ Set.univ f)
+    (hdiff : Differentiable ℝ f)
+    {x y : Config n} (hxy : x ≠ y) :
+    0 < bregman f x y := by
+  -- Combine non-negativity with strictness at equality.
+  have hnonneg : 0 ≤ bregman f x y := bregman_nonneg hconv.convexOn hdiff x y
+  have hzero : bregman f x y = 0 ↔ x = y := bregman_eq_zero_iff hconv hdiff x y
+  have hne : bregman f x y ≠ 0 := by
+    intro h
+    exact hxy (hzero.mp h)
+  exact lt_of_le_of_ne hnonneg (by simpa [ne_comm] using hne)
+
+/-- Convert inequality at function level to configuration inequality. -/
+private theorem toConfig_ne_of_ne {x : Fin n → ℝ} {x_eq : Config n}
+    (hx : x ≠ fromConfig x_eq) : toConfig x ≠ x_eq := by
+  -- Use the equivalence to transport the contradiction.
+  intro hxeq
+  have hx' : x = fromConfig x_eq := by
+    -- Apply `fromConfig` and use the round-trip lemma.
+    have := congrArg fromConfig hxeq
+    simpa [fromConfig_toConfig] using this
+  exact hx hx'
+
+/-- Package Bregman divergence as a Lyapunov function for MeanField stability.
+    The monotonicity along trajectories is supplied as an assumption. -/
+def bregman_lyapunov_data {n : ℕ} {f : Config n → ℝ}
+    (hconv : StrictConvexOn ℝ Set.univ f)
+    (hdiff : Differentiable ℝ f)
+    (x_eq : Config n)
+    (F : Gibbs.MeanField.DriftFunction (Fin n))
+    (hcont : Continuous fun x => bregman f (toConfig x) x_eq)
+    (hdec : ∀ (sol : ℝ → Fin n → ℝ),
+      (∀ t ≥ 0, HasDerivAt sol (F (sol t)) t) →
+      ∀ t₁ t₂, 0 ≤ t₁ → t₁ ≤ t₂ →
+        bregman f (toConfig (sol t₂)) x_eq ≤ bregman f (toConfig (sol t₁)) x_eq) :
+    Gibbs.MeanField.LyapunovData F (fromConfig x_eq) := by
+  -- Populate LyapunovData with Bregman as the candidate.
+  refine
+    { V := fun x => bregman f (toConfig x) x_eq
+      V_cont := hcont
+      V_zero := ?_
+      V_pos := ?_
+      V_nonneg := ?_
+      V_decreasing := ?_ }
+  · -- Bregman vanishes at the equilibrium point.
+    simpa [fromConfig, toConfig] using (bregman_self f x_eq)
+  · intro x hx
+    -- Convert to Config to apply strict positivity.
+    exact bregman_pos_of_ne hconv hdiff (toConfig_ne_of_ne hx)
+  · intro x
+    -- Nonnegativity of Bregman after converting to Config.
+    exact bregman_nonneg hconv.convexOn hdiff (toConfig x) x_eq
+  · intro sol hsol t₁ t₂ ht₁ ht₁₂
+    exact hdec sol hsol t₁ t₂ ht₁ ht₁₂
 
 end
 

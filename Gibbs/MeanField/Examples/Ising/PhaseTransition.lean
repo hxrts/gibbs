@@ -39,7 +39,7 @@ theorem zero_is_equilibrium (p : IsingParams) (hh : p.h = 0) :
 
 /-- When J ≥ 0 and βJ < 1, the strict sub-linearity |tanh(x)| < |x|
     forces any self-consistent m ≠ 0 to satisfy 1 < βJ, a contradiction. -/
-private theorem paramagnetic_J_nonneg (p : IsingParams) (hh : p.h = 0)
+private theorem paramagnetic_J_nonneg (p : IsingParams) (_hh : p.h = 0)
     (hpara : p.isParamagnetic) (hJ : p.J ≥ 0) (m : ℝ) (hsc : m = Real.tanh (p.β * (p.J * m)))
     (hm_ne : m ≠ 0) : False := by
   -- Handle J = 0 separately

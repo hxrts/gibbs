@@ -124,7 +124,7 @@ theorem simplex_invariant [Nonempty Q] (C : MeanFieldChoreography Q)
     (x₀ : Q → ℝ) (hx₀ : x₀ ∈ Simplex Q)
     (hcons : ∀ x, ∑ q, C.extendDrift x q = 0)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q) :
-    ∀ t ≥ 0, ODESolution C x₀ hcons hboundary t ∈ Simplex Q := by
+    ∀ t ≥ 0, ODESolution C x₀ (hx₀ := hx₀) hcons hboundary t ∈ Simplex Q := by
   intro t ht
   simpa [ODESolution] using
     (MeanFieldChoreography.solution_mem_simplex (C := C) x₀ hx₀ hcons hboundary t ht)
@@ -182,18 +182,18 @@ def IsLyapunovStable [Nonempty Q] (C : MeanFieldChoreography Q) (x : Q → ℝ)
     (hcons : ∀ x, ∑ q, C.extendDrift x q = 0)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q) : Prop :=
   IsEquilibrium C x ∧
-  ∀ ε > 0, ∃ δ > 0, ∀ x₀ ∈ Simplex Q,
+  ∀ ε > 0, ∃ δ > 0, ∀ x₀, ∀ hx₀ : x₀ ∈ Simplex Q,
     ‖x₀ - x‖ < δ → ∀ t ≥ 0,
-      ‖ODESolution C x₀ hcons hboundary t - x‖ < ε
+      ‖ODESolution C x₀ (hx₀ := hx₀) hcons hboundary t - x‖ < ε
 
 /-- Asymptotic stability: trajectories converge to x*. -/
 def IsAsymptoticallyStable' [Nonempty Q] (C : MeanFieldChoreography Q) (x : Q → ℝ)
     (hcons : ∀ x, ∑ q, C.extendDrift x q = 0)
     (hboundary : ∀ x q, x q = 0 → 0 ≤ C.extendDrift x q) : Prop :=
   IsLyapunovStable C x hcons hboundary ∧
-  ∃ δ > 0, ∀ x₀ ∈ Simplex Q,
+  ∃ δ > 0, ∀ x₀, ∀ hx₀ : x₀ ∈ Simplex Q,
     ‖x₀ - x‖ < δ →
-      Filter.Tendsto (ODESolution C x₀ hcons hboundary) Filter.atTop (nhds x)
+      Filter.Tendsto (ODESolution C x₀ (hx₀ := hx₀) hcons hboundary) Filter.atTop (nhds x)
 
 /-! ## Linear Stability -/
 
