@@ -156,13 +156,17 @@ theorem curlE_local (L : Lattice3D) [NeZero L.nx] [NeZero L.ny] [NeZero L.nz]
   let u := f.2.next
   let v := f.2.prev
   have h1 : E₁ (f.1, u) = E₂ (f.1, u) := by
-    exact h _ (by simp [curlE_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlE_stencil]))
   have h2 : E₁ (shiftPointPlus L f.1 u, v) = E₂ (shiftPointPlus L f.1 u, v) := by
-    exact h _ (by simp [curlE_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlE_stencil]))
   have h3 : E₁ (shiftPointPlus L f.1 v, u) = E₂ (shiftPointPlus L f.1 v, u) := by
-    exact h _ (by simp [curlE_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlE_stencil]))
   have h4 : E₁ (f.1, v) = E₂ (f.1, v) := by
-    exact h _ (by simp [curlE_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlE_stencil]))
   simp [curlE, u, v, h1, h2, h3, h4]
 
 /-- Locality: `curlB` depends only on its stencil faces. -/
@@ -174,13 +178,17 @@ theorem curlB_local (L : Lattice3D) [NeZero L.nx] [NeZero L.ny] [NeZero L.nz]
   let u := e.2.next
   let v := e.2.prev
   have h1 : B₁ (e.1, v) = B₂ (e.1, v) := by
-    exact h _ (by simp [curlB_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlB_stencil]))
   have h2 : B₁ (shiftPointMinus L e.1 u, v) = B₂ (shiftPointMinus L e.1 u, v) := by
-    exact h _ (by simp [curlB_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlB_stencil]))
   have h3 : B₁ (e.1, u) = B₂ (e.1, u) := by
-    exact h _ (by simp [curlB_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlB_stencil]))
   have h4 : B₁ (shiftPointMinus L e.1 v, u) = B₂ (shiftPointMinus L e.1 v, u) := by
-    exact h _ (by simp [curlB_stencil, u, v])
+    exact h _ (by
+      simpa [u, v] using (by simp [curlB_stencil]))
   simp [curlB, u, v, h1, h2, h3, h4]
 
 /-! ## Material Parameters and Energy -/
@@ -377,7 +385,7 @@ theorem localMaxwellUpdate_eq_on_edges (L : Lattice3D)
     (sys : LatticeMaxwell L) (S : Subdomain L)
     (E_ghost : ElectricField L) (B_ghost : MagneticField L)
     (x : MaxwellPhase L)
-    (hghostE : ∀ e, e ∈ ghostEdges L S → E_ghost e = x.1 e)
+    (_hghostE : ∀ e, e ∈ ghostEdges L S → E_ghost e = x.1 e)
     (hghostB : ∀ f, f ∈ ghostFaces L S → B_ghost f = x.2 f) :
     ∀ e, S.containsEdge e →
       (localMaxwellUpdate L sys S E_ghost B_ghost x).1 e =
@@ -394,7 +402,7 @@ theorem localMaxwellUpdate_eq_on_edges (L : Lattice3D)
       ohmicDamping L sys (extendElectric S x.1 E_ghost) e =
         ohmicDamping L sys x.1 e := by
     simp [ohmicDamping, hE]
-  simp [localMaxwellUpdate, maxwellUpdate, hE, hcurl, hOhm]
+  simp [localMaxwellUpdate, maxwellUpdate, hcurl, hOhm]
 
 /-- Local update matches global update on faces in the subdomain. -/
 theorem localMaxwellUpdate_eq_on_faces (L : Lattice3D)
@@ -403,7 +411,7 @@ theorem localMaxwellUpdate_eq_on_faces (L : Lattice3D)
     (E_ghost : ElectricField L) (B_ghost : MagneticField L)
     (x : MaxwellPhase L)
     (hghostE : ∀ e, e ∈ ghostEdges L S → E_ghost e = x.1 e)
-    (hghostB : ∀ f, f ∈ ghostFaces L S → B_ghost f = x.2 f) :
+    (_hghostB : ∀ f, f ∈ ghostFaces L S → B_ghost f = x.2 f) :
     ∀ f, S.containsFace f →
       (localMaxwellUpdate L sys S E_ghost B_ghost x).2 f =
         (maxwellUpdate L sys x).2 f := by
