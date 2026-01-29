@@ -1,4 +1,4 @@
-import Gibbs.Basic
+import Gibbs.Core
 import Gibbs.Hamiltonian.Basic
 import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.DampedFlow

@@ -3,7 +3,7 @@
 ## Module Dependency Tree
 
 ```
-Gibbs/Basic.lean
+Gibbs/Core.lean
 │
 ├── Hamiltonian/Basic.lean
 │   ├── Hamiltonian/ConvexHamiltonian.lean
@@ -56,7 +56,7 @@ All previously noted placeholder stubs have been replaced with concrete definiti
 
 ## Per-File Detail
 
-### `Basic.lean`
+### `Core.lean`
 
 Foundational type aliases and structures for session typing. Defines the vocabulary shared across all layers: session identifiers, roles, labels, endpoints, and communication edges.
 

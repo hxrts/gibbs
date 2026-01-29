@@ -25,6 +25,7 @@ noncomputable section
 /-! ## Nonlocal Operators -/
 
 variable {X : Type*} [MeasureTheory.MeasureSpace X] [Add X]
+-- Only addition is needed for displacement coordinates; no inverses used.
 variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
 
 /-- Global nonlocal operator in displacement coordinates. -/

@@ -1,4 +1,4 @@
-import Gibbs.Basic
+import Gibbs.Core
 import Gibbs.ContinuumField.Basic
 import Mathlib
 

@@ -28,8 +28,8 @@ variable {n : ℕ}
 
 /-! ## Measurable Structure -/
 
-/-- Borel measurable space on configuration space. -/
-instance instMeasurableSpaceConfig : MeasurableSpace (Config n) := by
+/-- Borel measurable space on configuration space (local to avoid instance diamonds). -/
+local instance instMeasurableSpaceConfig : MeasurableSpace (Config n) := by
   -- Use the Borel σ-algebra from the Euclidean topology.
   exact borel (Config n)
 

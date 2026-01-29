@@ -1,4 +1,4 @@
-import Gibbs.Basic
+import Gibbs.Core
 
 /-
 The Problem. We need a lightweight mirror of the Effects spatial model so the

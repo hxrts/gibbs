@@ -55,6 +55,7 @@ def KernelCoherent {X : Type*} [MeasureTheory.MeasureSpace X] [Add X]
 /-! ## Local Operator and Soundness -/
 
 variable {X : Type*} [MeasureTheory.MeasureSpace X] [Add X]
+-- Only addition is needed for displacement coordinates; no inverses used.
 variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
 
 /-- Nonlocal operator built directly from a local kernel field. -/

@@ -50,6 +50,7 @@ structure KernelRule (X : Type*) (V : Type*) (W : Type*)
 namespace GlobalKernel
 
 variable {X : Type*} [MeasureTheory.MeasureSpace X] [Add X]
+-- Only addition is needed for displacement coordinates; no inverses used.
 
 /-- Project a global kernel to a local kernel field at position x. -/
 def localKernel (K : GlobalKernel X) (x : X) : KernelField X :=

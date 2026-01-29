@@ -1,4 +1,4 @@
-import Gibbs.Basic
+import Gibbs.Core
 
 /-
 The Problem. We need foundational types for mean-field theory:

@@ -14,7 +14,7 @@ theoretical foundation.
 
 ## Main Modules
 
-- `Gibbs.Basic`: Core types (SessionId, Role, Endpoint, Edge)
+- `Gibbs.Core`: Core types (SessionId, Role, Endpoint, Edge)
 - `Gibbs.LocalType`: Local session types with role-directed actions
 - `Gibbs.GlobalType`: Global choreographic types
 - `Gibbs.Projection`: Global -> local type projection
@@ -22,5 +22,5 @@ theoretical foundation.
 -/
 
 -- Submodules will be imported here as they are developed
--- import Gibbs.Basic
+-- import Gibbs.Core
 -- import Gibbs.LocalType

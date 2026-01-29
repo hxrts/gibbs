@@ -1,6 +1,6 @@
 import Mathlib
 
-/-! # Basic Definitions
+/-! # Core Definitions
 
 Foundational types and structures for the Gibbs library.
 
