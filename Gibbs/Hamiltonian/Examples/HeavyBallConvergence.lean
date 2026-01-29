@@ -117,6 +117,209 @@ lemma heavyBallLyapunov_deriv (f : Config n → ℝ) (x_star : Config n) (ε : �
             (-gradient f (sol t).1 - dyn.γ • (sol t).2)) := by
   simpa using (heavyBallLyapunov_hasDeriv (n := n) f x_star ε dyn hdyn sol hsol t).deriv
 
+/-! ## Inequalities -/
+
+/-- Scalar inequality used to bound mixed terms. -/
+lemma mul_le_half_add_sq (a b : ℝ) : a * b ≤ (a ^ 2 + b ^ 2) / 2 := by
+  have h : 0 ≤ (a - b) ^ 2 := by nlinarith
+  nlinarith [h]
+
+/-- Young's inequality with parameter `δ`. -/
+lemma mul_le_young (a b δ : ℝ) (hδ : 0 < δ) :
+    a * b ≤ a ^ 2 / (2 * δ) + (δ * b ^ 2) / 2 := by
+  have h : 0 ≤ (a - δ * b) ^ 2 := by nlinarith
+  have h' : 2 * δ * a * b ≤ a ^ 2 + δ ^ 2 * b ^ 2 := by nlinarith [h]
+  have hδne : δ ≠ 0 := by nlinarith [hδ]
+  field_simp [hδne]
+  have h'' : a * b * 2 * δ = 2 * δ * a * b := by ring
+  have h''' : a ^ 2 + b ^ 2 * δ ^ 2 = a ^ 2 + δ ^ 2 * b ^ 2 := by ring
+  simpa [h'', h'''] using h'
+
+/-- Inner product bounded by averaged squared norms. -/
+lemma inner_le_half_norm_sq (x y : Config n) :
+    inner (𝕜 := ℝ) x y ≤ (‖x‖ ^ 2 + ‖y‖ ^ 2) / 2 := by
+  have hcs : inner (𝕜 := ℝ) x y ≤ ‖x‖ * ‖y‖ := by
+    exact le_trans (le_abs_self _) (abs_real_inner_le_norm _ _)
+  have hmul := mul_le_half_add_sq ‖x‖ ‖y‖
+  exact le_trans hcs (by simpa using hmul)
+
+/-- Inner product bound with parameter `δ`. -/
+lemma inner_le_young (x y : Config n) (δ : ℝ) (hδ : 0 < δ) :
+    inner (𝕜 := ℝ) x y ≤ (δ / 2) * ‖y‖ ^ 2 + (1 / (2 * δ)) * ‖x‖ ^ 2 := by
+  have hcs : inner (𝕜 := ℝ) x y ≤ ‖x‖ * ‖y‖ := by
+    exact le_trans (le_abs_self _) (abs_real_inner_le_norm _ _)
+  have hmul := mul_le_young ‖x‖ ‖y‖ δ hδ
+  -- rewrite the Young bound into the desired form
+  have hmul' :
+      ‖x‖ * ‖y‖ ≤ (δ / 2) * ‖y‖ ^ 2 + (1 / (2 * δ)) * ‖x‖ ^ 2 := by
+    have hmul'' :
+        ‖x‖ * ‖y‖ ≤ (1 / (2 * δ)) * ‖x‖ ^ 2 + (δ / 2) * ‖y‖ ^ 2 := by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hmul
+    nlinarith [hmul'']
+  exact le_trans hcs hmul'
+
+/-- Bound for the negative inner product with parameter `δ`. -/
+lemma neg_inner_le_young (x y : Config n) (δ : ℝ) (hδ : 0 < δ) :
+    -inner (𝕜 := ℝ) x y ≤ (δ / 2) * ‖y‖ ^ 2 + (1 / (2 * δ)) * ‖x‖ ^ 2 := by
+  have hneg : -inner (𝕜 := ℝ) x y ≤ |inner (𝕜 := ℝ) x y| := neg_le_abs _
+  have habs : |inner (𝕜 := ℝ) x y| ≤ ‖x‖ * ‖y‖ := abs_real_inner_le_norm _ _
+  have hmul := mul_le_young ‖x‖ ‖y‖ δ hδ
+  have hmul' :
+      ‖x‖ * ‖y‖ ≤ (δ / 2) * ‖y‖ ^ 2 + (1 / (2 * δ)) * ‖x‖ ^ 2 := by
+    have hmul'' :
+        ‖x‖ * ‖y‖ ≤ (1 / (2 * δ)) * ‖x‖ ^ 2 + (δ / 2) * ‖y‖ ^ 2 := by
+      simpa [div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc] using hmul
+    nlinarith [hmul'']
+  exact le_trans hneg (le_trans habs hmul')
+
+/-- Upper bound on the Lyapunov functional using Young's inequality. -/
+lemma heavyBallLyapunov_upper (f : Config n → ℝ) (x_star : Config n) (ε : ℝ)
+    (x : PhasePoint n) (hε : 0 ≤ ε) :
+    heavyBallLyapunov (n := n) f x_star ε x ≤
+      (f x.1 - f x_star) + ((1 + ε) / 2) * ‖x.2‖ ^ 2 + (ε / 2) * ‖x.1 - x_star‖ ^ 2 := by
+  have hinner : inner (𝕜 := ℝ) (x.1 - x_star) x.2 ≤
+      (‖x.1 - x_star‖ ^ 2 + ‖x.2‖ ^ 2) / 2 :=
+    inner_le_half_norm_sq (n := n) (x := x.1 - x_star) (y := x.2)
+  have hinner' : ε * inner (𝕜 := ℝ) (x.1 - x_star) x.2 ≤
+      (ε / 2) * ‖x.1 - x_star‖ ^ 2 + (ε / 2) * ‖x.2‖ ^ 2 := by
+    have hmul := mul_le_mul_of_nonneg_left hinner hε
+    have hrewrite :
+        ε * ((‖x.2‖ ^ 2 + ‖x.1 - x_star‖ ^ 2) / 2) =
+          (ε / 2) * ‖x.1 - x_star‖ ^ 2 + (ε / 2) * ‖x.2‖ ^ 2 := by
+      ring
+    simpa [hrewrite, add_comm, add_left_comm, add_assoc] using hmul
+  calc
+    heavyBallLyapunov (n := n) f x_star ε x =
+        (f x.1 - f x_star) + (1 / 2 : ℝ) * ‖x.2‖ ^ 2 +
+          ε * inner (𝕜 := ℝ) (x.1 - x_star) x.2 := rfl
+    _ ≤ (f x.1 - f x_star) + (1 / 2 : ℝ) * ‖x.2‖ ^ 2 +
+          (ε / 2) * ‖x.1 - x_star‖ ^ 2 + (ε / 2) * ‖x.2‖ ^ 2 := by
+          nlinarith [hinner']
+    _ = (f x.1 - f x_star) + ((1 + ε) / 2) * ‖x.2‖ ^ 2 +
+          (ε / 2) * ‖x.1 - x_star‖ ^ 2 := by ring
+
+/-- Strong convexity lower bound on the gradient inner product. -/
+lemma strongConvex_inner_bound (f : Config n → ℝ) (m : ℝ)
+    (hf : StronglyConvex (n := n) f m) (x_star x : Config n) :
+    inner (𝕜 := ℝ) (x - x_star) (gradient f x) ≥
+      f x - f x_star + (m / 2) * ‖x - x_star‖ ^ 2 := by
+  have h := hf.lower_bound x x_star
+  have h_inner :
+      inner (𝕜 := ℝ) (gradient f x) (x_star - x) =
+        -inner (𝕜 := ℝ) (gradient f x) (x - x_star) := by
+    have hx : x_star - x = -(x - x_star) := by abel
+    calc
+      inner (𝕜 := ℝ) (gradient f x) (x_star - x) =
+          inner (𝕜 := ℝ) (gradient f x) (-(x - x_star)) := by
+            rw [hx]
+      _ = -inner (𝕜 := ℝ) (gradient f x) (x - x_star) := by
+            simpa using (inner_neg_right (x := gradient f x) (y := x - x_star))
+  have h' : f x_star ≥ f x - inner (𝕜 := ℝ) (gradient f x) (x - x_star) +
+      (m / 2) * ‖x - x_star‖ ^ 2 := by
+    simpa [h_inner, norm_sub_rev] using h
+  have h'' :
+      inner (𝕜 := ℝ) (gradient f x) (x - x_star) ≥
+        f x - f x_star + (m / 2) * ‖x - x_star‖ ^ 2 := by
+    linarith [h']
+  simpa [real_inner_comm] using h''
+
+/-- Derivative bound using strong convexity and Young's inequality. -/
+lemma heavyBallLyapunov_deriv_le (f : Config n → ℝ) (m ε δ : ℝ)
+    (hf : StronglyConvex (n := n) f m) (x_star : Config n)
+    (hε : 0 ≤ ε) (hδ : 0 < δ)
+    (dyn : HeavyBallDynamics n) (hdyn : dyn.f = f)
+    (sol : ℝ → HeavyBallState n) (hsol : SolvesHeavyBall dyn sol) (t : ℝ) :
+    deriv (fun s => heavyBallLyapunov (n := n) f x_star ε (sol s)) t ≤
+      -(dyn.γ - ε) * ‖(sol t).2‖ ^ 2
+      - ε * (f (sol t).1 - f x_star)
+      - ε * (m / 2) * ‖(sol t).1 - x_star‖ ^ 2
+      + ε * dyn.γ * ((δ / 2) * ‖(sol t).2‖ ^ 2 +
+        (1 / (2 * δ)) * ‖(sol t).1 - x_star‖ ^ 2) := by
+  set q := (sol t).1
+  set p := (sol t).2
+  have hderiv := heavyBallLyapunov_deriv (n := n) (f := f) (x_star := x_star) (ε := ε)
+    (dyn := dyn) hdyn sol hsol t
+  have hcancel :
+      inner (𝕜 := ℝ) (gradient f q) p +
+        inner (𝕜 := ℝ) p (-gradient f q - dyn.γ • p) = -dyn.γ * ‖p‖ ^ 2 := by
+    have hsplit_p :
+        inner (𝕜 := ℝ) p (-gradient f q - dyn.γ • p) =
+          -inner (𝕜 := ℝ) p (gradient f q) + -inner (𝕜 := ℝ) p (dyn.γ • p) := by
+      calc
+        inner (𝕜 := ℝ) p (-gradient f q - dyn.γ • p) =
+            inner (𝕜 := ℝ) p (-gradient f q) + inner (𝕜 := ℝ) p (-dyn.γ • p) := by
+              simp [inner_add_right, sub_eq_add_neg]
+        _ = -inner (𝕜 := ℝ) p (gradient f q) + -inner (𝕜 := ℝ) p (dyn.γ • p) := by
+              simp [inner_neg_right]
+    calc
+      inner (𝕜 := ℝ) (gradient f q) p +
+          inner (𝕜 := ℝ) p (-gradient f q - dyn.γ • p)
+          = inner (𝕜 := ℝ) (gradient f q) p +
+            (-inner (𝕜 := ℝ) p (gradient f q) + -inner (𝕜 := ℝ) p (dyn.γ • p)) := by
+              simp [hsplit_p]
+      _ = inner (𝕜 := ℝ) (gradient f q) p -
+            inner (𝕜 := ℝ) p (gradient f q) - inner (𝕜 := ℝ) p (dyn.γ • p) := by
+            simp [sub_eq_add_neg, add_assoc]
+      _ = -dyn.γ * ‖p‖ ^ 2 := by
+            have hcomm : inner (𝕜 := ℝ) (gradient f q) p =
+                inner (𝕜 := ℝ) p (gradient f q) := by
+                  simp [real_inner_comm]
+            simp [inner_smul_right, hcomm, sub_eq_add_neg]
+  have hsplit :
+      inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) =
+        -inner (𝕜 := ℝ) (q - x_star) (gradient f q) +
+          -inner (𝕜 := ℝ) (q - x_star) (dyn.γ • p) := by
+    calc
+      inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) =
+          inner (𝕜 := ℝ) (q - x_star) (-gradient f q) +
+            inner (𝕜 := ℝ) (q - x_star) (-dyn.γ • p) := by
+              simp [inner_add_right, sub_eq_add_neg]
+      _ = -inner (𝕜 := ℝ) (q - x_star) (gradient f q) +
+            -inner (𝕜 := ℝ) (q - x_star) (dyn.γ • p) := by
+              simp [inner_neg_right, sub_eq_add_neg]
+  have hsc := strongConvex_inner_bound (n := n) (f := f) m hf x_star q
+  have hsc' :
+      -ε * inner (𝕜 := ℝ) (q - x_star) (gradient f q) ≤
+        -ε * (f q - f x_star) - ε * (m / 2) * ‖q - x_star‖ ^ 2 := by
+    have hmul := mul_le_mul_of_nonneg_left hsc hε
+    nlinarith [hmul]
+  have hcross :
+      -ε * dyn.γ * inner (𝕜 := ℝ) (q - x_star) p ≤
+        ε * dyn.γ * ((δ / 2) * ‖p‖ ^ 2 + (1 / (2 * δ)) * ‖q - x_star‖ ^ 2) := by
+    have hneg := neg_inner_le_young (n := n) (x := q - x_star) (y := p) δ hδ
+    have hγ : 0 ≤ dyn.γ := le_of_lt dyn.γ_pos
+    have hmul := mul_le_mul_of_nonneg_left hneg (mul_nonneg hε hγ)
+    simpa [mul_add, add_assoc, mul_comm, mul_left_comm, mul_assoc] using hmul
+  -- combine the bounds
+  have hderiv' : deriv (fun s => heavyBallLyapunov (n := n) f x_star ε (sol s)) t =
+      -dyn.γ * ‖p‖ ^ 2 + ε * ‖p‖ ^ 2 +
+        ε * inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) := by
+    simpa [q, p, hcancel, real_inner_self_eq_norm_sq, mul_add, add_comm, add_left_comm, add_assoc,
+      mul_comm, mul_left_comm, mul_assoc] using hderiv
+  have hderiv'' : deriv (fun s => heavyBallLyapunov (n := n) f x_star ε (sol s)) t =
+      -(dyn.γ - ε) * ‖p‖ ^ 2 +
+        ε * inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) := by
+    nlinarith [hderiv']
+  -- use the split for the inner term
+  have hsplit' :
+      ε * inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) =
+        -ε * inner (𝕜 := ℝ) (q - x_star) (gradient f q) -
+          ε * dyn.γ * inner (𝕜 := ℝ) (q - x_star) p := by
+    -- expand and use `hsplit`
+    -- distribute and rewrite the scalar inner product
+    calc
+      ε * inner (𝕜 := ℝ) (q - x_star) (-gradient f q - dyn.γ • p) =
+          ε * (-inner (𝕜 := ℝ) (q - x_star) (gradient f q) +
+            -inner (𝕜 := ℝ) (q - x_star) (dyn.γ • p)) := by
+            simp [hsplit]
+      _ = -ε * inner (𝕜 := ℝ) (q - x_star) (gradient f q) +
+            -ε * inner (𝕜 := ℝ) (q - x_star) (dyn.γ • p) := by
+            ring
+      _ = -ε * inner (𝕜 := ℝ) (q - x_star) (gradient f q) -
+            ε * dyn.γ * inner (𝕜 := ℝ) (q - x_star) p := by
+            simp [inner_smul_right, sub_eq_add_neg, mul_assoc]
+  nlinarith [hderiv'', hsplit', hsc', hcross]
+
 /-! ## Exponential comparison -/
 
 /-- Exponential decay from a differential inequality. -/
