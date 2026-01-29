@@ -30,14 +30,14 @@ noncomputable section
 
 /-- Choreography-level kernel declaration. -/
 structure KernelDecl (X : Type*) [MeasureTheory.MeasureSpace X] where
-  -- Package a global kernel as a choreography declaration.
+  /-- A global kernel packaged as a choreography declaration. -/
   kernel : GlobalKernel X
 
 /-! ## Local Kernel Environments -/
 
 /-- Local environment carrying a kernel field per role. -/
 structure LocalKernelEnv (X : Type*) (R : Type*) where
-  -- Each role is assigned a local kernel field.
+  /-- Each role is assigned a local kernel field. -/
   kernelAt : R → KernelField X
 
 /-- Project a global kernel to each role using its location. -/

@@ -5,7 +5,7 @@ The Problem. Define Glauber dynamics (local transition rates) for the
 Ising model and prove they reproduce the global mean-field drift.
 
 Solution Structure.
-1. Glauber rates α (up→down) and γ (down→up)
+1. Glauber rates α (down→up) and γ (up→down)
 2. Key identities: α - γ = (1/τ)tanh(β(Jm+h)), α + γ = 1/τ
 3. Projection theorem: local rates produce global drift
 -/
@@ -20,14 +20,16 @@ noncomputable section
 
 /-! ## Glauber Rates -/
 
-/-- Glauber rate for up → down transition.
-    α(m) = (1/τ) / (1 + exp(-2β(Jm + h))) -/
+/-- Glauber rate for down → up transition.
+    α(m) = (1/τ) / (1 + exp(-2β(Jm + h)))
+    In `glauber_produces_isingDrift`, inflow to up = x_down · α. -/
 def glauberAlpha (p : IsingParams) (x : TwoState → ℝ) : ℝ :=
   let m := magnetizationOf x
   (1 / p.τ) / (1 + Real.exp (-2 * p.β * (p.J * m + p.h)))
 
-/-- Glauber rate for down → up transition.
-    γ(m) = (1/τ) / (1 + exp(+2β(Jm + h))) -/
+/-- Glauber rate for up → down transition.
+    γ(m) = (1/τ) / (1 + exp(+2β(Jm + h)))
+    In `glauber_produces_isingDrift`, outflow from up = x_up · γ. -/
 def glauberGamma (p : IsingParams) (x : TwoState → ℝ) : ℝ :=
   let m := magnetizationOf x
   (1 / p.τ) / (1 + Real.exp (2 * p.β * (p.J * m + p.h)))

@@ -1,14 +1,10 @@
 # Gibbs
 
-Structure defines a *set of possible executions*, causality selects a *member* of that set.
+Gibbs is a statistical mechanics formalization in Lean 4. It develops three layers of physical theory: Hamiltonian mechanics in finite-dimensional phase space, mean-field population dynamics on the probability simplex, and continuum field theory with nonlocal integral kernels. The Hamiltonian layer formalizes convex energy functions, damped flows, Legendre duality, and Lyapunov stability. The mean-field layer constructs drift functions from stoichiometric rules and proves ODE existence on the simplex via Picard-Lindelöf. The continuum field layer lifts these dynamics to spatially extended systems where interactions are mediated by global integral kernels.
 
-* MPST projection preserves intensional structure while erasing extensional detail.
-* Mean-field abstraction preserves macroscopic intensional structure while erasing extensional individuality and history.
+The three layers form a stack. Hamiltonian mechanics provides the dynamical semantics: energy, stability, and equilibrium. Mean-field gives the population-level view: many agents choosing among finitely many states with no spatial structure. Continuum field adds space, replacing uniform all-to-all coupling with a kernel that weights interactions by distance and direction.
 
-Both frameworks perform erasure at the extensional level:
-
-* Projection forgets *how* an executed protocol is interleaved or scheduled, keeping only what each role must do.
-* Mean-field abstraction forgets *which* agent did what, when, keeping only how many agents are in each intensional state.
+The project employs a structural analogy between multiparty session type (MPST) projection and physical coarse-graining as dual approaches to modeling concurrency. Both perform erasure at the extensional level, mapping global specifications to local views. Each physical layer exhibits the same pattern: mean-field abstraction forgets individual identity, Hamiltonian choreography partitions phase-space coordinates among roles, and continuum field projection decomposes nonlocal kernels into local views.
 
 ## Setup
 

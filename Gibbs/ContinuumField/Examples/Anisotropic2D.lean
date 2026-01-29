@@ -8,9 +8,8 @@ The Problem. We want a small, concrete 2D example that illustrates an
 anisotropic local kernel profile, the exactness of global→local projection,
 and how a closure summarizes a kernel without changing the core operator.
 
-The difficulty is keeping this example lightweight and proof-free. We provide
-simple 2D vector helpers and reuse the exactness lemma and closure soundness
-contract.
+The difficulty is keeping this example lightweight. We provide simple 2D
+vector helpers and reuse the exactness lemma and closure soundness contract.
 
 Solution Structure.
 1. 2D helper functions (dot, normSq)
@@ -52,13 +51,13 @@ variable [MeasureTheory.MeasureSpace X2]
 
 /-- A bundled 2D example with a global kernel and anisotropy data. -/
 structure Example2D where
-  -- The global kernel supplying exact nonlocal semantics.
+  /-- The global kernel supplying exact nonlocal semantics. -/
   K : GlobalKernel X2
-  -- Directional axis for anisotropy (example parameter).
+  /-- Directional axis for anisotropy (example parameter). -/
   axis : X2
-  -- Range parameter for the local profile.
+  /-- Range parameter for the local profile. -/
   range : ℝ
-  -- Strength of anisotropy in the profile.
+  /-- Strength of anisotropy in the profile. -/
   anisotropy : ℝ
 
 end WithKernel

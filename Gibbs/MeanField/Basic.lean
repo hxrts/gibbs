@@ -135,6 +135,7 @@ theorem up_ne_down : up ≠ down := by decide
 /-- Enumeration of all two states. -/
 def all : List TwoState := [up, down]
 
+/-- Every TwoState value appears in the enumeration list. -/
 theorem all_complete : ∀ s : TwoState, s ∈ all := by
   intro s; cases s <;> simp [all]
 

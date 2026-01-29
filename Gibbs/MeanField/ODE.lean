@@ -24,18 +24,6 @@ Solution Structure.
 4. Fixed points and stability definitions
 -/
 
-/-!
-# ODE Semantics for Mean-Field Systems
-
-## Main Results
-
-- `ode_unique_on_Icc`: Uniqueness on bounded intervals via Gronwall
-- `ode_unique`: Global uniqueness for choreography solutions
-- `equilibrium_is_fixed_point`: Equilibria are simplex fixed points
-- `IsHurwitz`: Hurwitz spectral condition (all eigenvalues Re < 0)
-- `linear_stable_implies_asymptotic`: Moved to Stability.lean
--/
-
 namespace Gibbs.MeanField
 
 open scoped Classical NNReal

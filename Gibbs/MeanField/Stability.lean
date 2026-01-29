@@ -18,19 +18,6 @@ Solution Structure (Lyapunov approach).
 5. Main theorem: linear stable → asymptotically stable (chains 4 → 3)
 -/
 
-/-!
-# Linearized Stability for Mean-Field Systems
-
-## Main Results
-
-- `isHurwitz_iff_spectrum_neg`: Equivalence of eigenvalue and spectrum formulations
-- `drift_linearization`: Drift approximation near fixed point
-- `lyapunov_implies_stable`: Lyapunov function → Lyapunov stability
-- `strict_lyapunov_implies_asymptotic`: Strict Lyapunov → asymptotic stability
-- `hurwitz_implies_lyapunov_exists`: Hurwitz → Lyapunov function (explicit Lyapunov hypothesis)
-- `linear_stable_implies_asymptotic`: Main theorem (chains through Lyapunov)
--/
-
 namespace Gibbs.MeanField
 
 open scoped Classical NNReal Matrix

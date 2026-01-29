@@ -21,18 +21,6 @@ Solution Structure.
 5. Canonical solution extracted via Classical.choose
 -/
 
-/-!
-# ODE Existence for Mean-Field Systems
-
-## Main Results
-
-- `local_ode_exists`: Local ODE existence via Picard-Lindelöf
-- `lipschitz_uniform_local_exists`: Generic local existence for Lipschitz ODEs
-- `sum_preserved`: Sum of components is constant along conservative solutions
-- `global_ode_exists`: Global existence + simplex invariance (proof via `MeanFieldChoreography`)
-- `MeanFieldChoreography.solution`: Canonical ODE solution
--/
-
 namespace Gibbs.MeanField
 
 open scoped Classical NNReal Topology

@@ -1,22 +1,19 @@
 import Gibbs.MeanField.Choreography
 import Mathlib.Topology.MetricSpace.Lipschitz
 
-/-!
-# Lipschitz Bridge
+/-
+The Problem. Our `DriftFunction.IsLipschitz` predicate on the simplex must
+connect to Mathlib's `LipschitzWith` typeclass to use Picard–Lindelöf
+and Gronwall.
 
-This module bridges our `DriftFunction.IsLipschitz` predicate to Mathlib's
-`LipschitzWith` typeclass, enabling use of Mathlib's ODE theorems.
+The difficulty is that Mathlib requires globally Lipschitz functions on
+normed spaces, while our drift is defined only on the simplex. We use
+`LipschitzOnWith.extend_pi` to extend to the whole space.
 
-## Key Insight
-
-Mathlib's `LipschitzOnWith.extend_pi` can extend a function that is Lipschitz
-on a subset (our simplex) to a globally Lipschitz function on the whole space.
-
-## Main Results
-
-- `DriftFunction.toLipschitzOnWith`: Convert our predicate to Mathlib's
-- `DriftFunction.extend`: Extend drift to whole space while preserving Lipschitz
-- `extendedDrift_lipschitz`: The extended drift is globally Lipschitz
+Solution Structure.
+1. Convert our predicate to Mathlib's `LipschitzOnWith` on the simplex
+2. Extend drift to the whole space preserving the Lipschitz constant
+3. Provide time-dependent and choreography wrappers
 -/
 
 namespace Gibbs.MeanField
