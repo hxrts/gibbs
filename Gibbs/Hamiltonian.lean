@@ -3,8 +3,11 @@ import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.DampedFlow
 import Gibbs.Hamiltonian.Ergodic
 import Gibbs.Hamiltonian.FenchelMoreau
+import Gibbs.Hamiltonian.GeneralHamiltonian
 import Gibbs.Hamiltonian.Legendre
 import Gibbs.Hamiltonian.NoseHoover
+import Gibbs.Hamiltonian.SymplecticFlow
+import Gibbs.Hamiltonian.Stochastic
 import Gibbs.Hamiltonian.Choreography
 import Gibbs.Hamiltonian.Stability
 import Gibbs.Hamiltonian.Examples.HarmonicOscillator

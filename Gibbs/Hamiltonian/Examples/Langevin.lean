@@ -1,4 +1,5 @@
 import Gibbs.Hamiltonian.NoseHoover
+import Gibbs.Hamiltonian.Stochastic.Basic
 
 /-
 The Problem. Provide a deterministic Langevin-style example on the simplex,
@@ -20,6 +21,7 @@ namespace Gibbs.Hamiltonian.Examples
 open scoped BigOperators
 
 noncomputable section
+
 
 /-! ## Simplex Projection -/
 
@@ -96,21 +98,27 @@ theorem langevin_noseHoover_same_equilibrium (H : ConvexHamiltonian n) (kT : ℝ
   -- Both are defined to be the Gibbs density.
   rfl
 
-/-! ## Stochastic Extension (Effect-Based Placeholder) -/
-
-/-- Minimal SDE data for a Langevin-style stochastic extension. -/
-structure LangevinSDE (n : ℕ) where
-  /-- Deterministic drift. -/
-  drift : PhasePoint n → PhasePoint n
-  /-- Noise coefficient (diffusion). -/
-  diffusion : PhasePoint n → PhasePoint n
+/-! ## Stochastic Extension (Minimal Core) -/
 
 /-- A Langevin SDE with damped drift and constant momentum noise. -/
 noncomputable def langevinSDE (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ) :
-    LangevinSDE n := by
+    Gibbs.Hamiltonian.Stochastic.SDE n := by
   -- Noise lives in the momentum component; the position noise is zero.
   refine { drift := dampedDrift H d, diffusion := ?_ }
   intro _x
   exact (0, (σ : ℝ) • (0 : Config n))
+
+/-- A concrete Langevin process from a chosen integration theory and Brownian path. -/
+noncomputable def langevinProcess (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ)
+    (I : Gibbs.Hamiltonian.Stochastic.SDEIntegral n)
+    (W : Gibbs.Hamiltonian.Stochastic.BrownianPath n)
+    (X : ℝ → PhasePoint n)
+    (hX : Gibbs.Hamiltonian.Stochastic.SolvesSDE I (langevinSDE H d σ) W X) :
+    Gibbs.Hamiltonian.Stochastic.SDEProcess n :=
+  { sde := langevinSDE H d σ
+    integral := I
+    brownian := W
+    path := X
+    solves := hX }
 
 end Gibbs.Hamiltonian.Examples

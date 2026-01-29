@@ -1,5 +1,6 @@
 import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.DampedFlow
+import Gibbs.Hamiltonian.Ergodic
 import Mathlib.Data.NNReal.Basic
 import Mathlib.Tactic
 
@@ -211,6 +212,59 @@ theorem equipartition_target (n : ℕ) (params : ThermostatParams)
     (noseHooverDrift H params x).ξ = 0 := by
   -- Directly simplify the ξ̇ definition.
   simp [noseHooverDrift, ThermostatPoint.ξ, ThermostatPoint.mk, hp]
+
+/-! ## Invariant Measure and Ergodicity Scaffolding -/
+
+-- Use the Borel σ-algebra on configuration space to match `Ergodic.IsErgodic`.
+local instance instMeasurableSpaceConfigBorel : MeasurableSpace (Config n) := by
+  exact borel (Config n)
+
+/-- Unnormalized invariant weight on extended phase space. -/
+noncomputable def noseHooverInvariantWeight (H : ConvexHamiltonian n) (params : ThermostatParams)
+    (x : ThermostatPoint n) : ℝ :=
+  Real.exp (-H.energy x.toPhasePoint / params.kT) *
+    Real.exp (-params.Q * x.ξ ^ 2 / (2 * params.kT))
+
+/-- Gibbs-style measure on the extended phase space, defined by a reference measure. -/
+noncomputable def noseHooverInvariantMeasure (H : ConvexHamiltonian n) (params : ThermostatParams)
+    (μ : MeasureTheory.Measure (ThermostatPoint n)) : MeasureTheory.Measure (ThermostatPoint n) :=
+  MeasureTheory.Measure.withDensity μ
+    (fun x => ENNReal.ofReal (noseHooverInvariantWeight H params x))
+
+/-- Measure preservation predicate for a flow on extended phase space. -/
+def IsMeasurePreserving (flow : ℝ → ThermostatPoint n → ThermostatPoint n)
+    (μ : MeasureTheory.Measure (ThermostatPoint n)) : Prop :=
+  ∀ t, MeasureTheory.MeasurePreserving (flow t) μ μ
+
+/-- If the flow is assumed measure-preserving, record it as a Gibbs invariance statement. -/
+theorem noseHoover_preserves_invariantMeasure (H : ConvexHamiltonian n) (params : ThermostatParams)
+    (μ : MeasureTheory.Measure (ThermostatPoint n))
+    (flow : ℝ → ThermostatPoint n → ThermostatPoint n)
+    (hpres : ∀ t,
+      MeasureTheory.MeasurePreserving (flow t)
+        (noseHooverInvariantMeasure H params μ)
+        (noseHooverInvariantMeasure H params μ)) :
+    IsMeasurePreserving flow (noseHooverInvariantMeasure H params μ) := by
+  exact hpres
+
+/-- Project a thermostat flow to a configuration-space process family. -/
+noncomputable def noseHooverProcessFamily
+    (flow : ℝ → ThermostatPoint n → ThermostatPoint n)
+    (lift : Config n → ThermostatPoint n) :
+    Config n → StochasticProcess n :=
+  fun q₀ t => (flow t (lift q₀)).q
+
+/-- Ergodicity wrapper for Nosé–Hoover processes, assuming the core ergodicity hypothesis. -/
+theorem noseHoover_ergodic (H : ConvexHamiltonian n) (params : ThermostatParams)
+    (μ : MeasureTheory.Measure (Config n))
+    (flow : ℝ → ThermostatPoint n → ThermostatPoint n)
+    (lift : Config n → ThermostatPoint n)
+    (hErg :
+      IsErgodic (V := H.V) (kT := params.kT) μ
+        (noseHooverProcessFamily (n := n) flow lift)) :
+    IsErgodic (V := H.V) (kT := params.kT) μ
+      (noseHooverProcessFamily (n := n) flow lift) := by
+  exact hErg
 
 end
 
