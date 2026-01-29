@@ -50,8 +50,7 @@ Facade modules: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/Continu
 ## Proof Completeness
 
 **No `sorry` anywhere in the codebase.**
-
-Two `TODO` placeholders remain in `MeanField/Choreography.lean` (lines 167, 174): the bodies of `IsStable` and `IsAsymptoticallyStable` use `True` as a stub where solution trajectories are needed. These are definition stubs, not incomplete proofs.
+All previously noted placeholder stubs have been replaced with concrete definitions.
 
 ---
 
@@ -337,7 +336,7 @@ Defines the choreographic specification for mean-field dynamics: a drift functio
 | def | `DriftFunction Q` | (Q → ℝ) → (Q → ℝ) with Conserves, IsLipschitz |
 | structure | `MeanFieldChoreography` | Drift + Lipschitz + conservation + boundary |
 | def | `IsEquilibrium` | F(x) = 0 and x ∈ Simplex |
-| def | `IsStable`, `IsAsymptoticallyStable` | **TODO stubs** (body is `True`) |
+| def | `IsStable`, `IsAsymptoticallyStable` | ODE-style stability definitions via solution trajectories |
 
 **Assumptions on `MeanFieldChoreography Q`:**
 - `drift_lipschitz : ∃ L, DriftFunction.IsLipschitz drift L` — drift is Lipschitz on the simplex (needed for ODE uniqueness)

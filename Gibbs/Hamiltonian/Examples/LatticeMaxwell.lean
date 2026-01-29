@@ -155,8 +155,8 @@ def covers (L : Lattice3D) (P : DomainPartition L) : Prop :=
   ∀ i : L.Point, ∃ S ∈ P, i ∈ S.points
 
 /-- Disjointness predicate for partitions. -/
-def disjoint (_L : Lattice3D) (_P : DomainPartition _L) : Prop :=
-  True
+def disjoint (_L : Lattice3D) (P : DomainPartition _L) : Prop :=
+  ∀ ⦃S₁⦄, S₁ ∈ P → ∀ ⦃S₂⦄, S₂ ∈ P → S₁ ≠ S₂ → Disjoint S₁.points S₂.points
 
 /-- Ghost points outside a subdomain (placeholder: empty set). -/
 def ghostPoints (L : Lattice3D) (_S : Subdomain L) : Finset L.Point := ∅

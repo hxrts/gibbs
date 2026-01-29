@@ -1,4 +1,5 @@
 import Gibbs.MeanField.Basic
+import Mathlib.Analysis.Calculus.Deriv.Basic
 
 /-
 The Problem. We need to specify global choreographic constraints for
@@ -163,15 +164,21 @@ end MeanFieldChoreography
 def IsStable {Q : Type*} [Fintype Q]
     (C : MeanFieldChoreography Q) (x : Q → ℝ) : Prop :=
   IsEquilibrium C x ∧
-  ∃ ε > 0, ∀ x₀ ∈ Simplex Q, ‖x₀ - x‖ < ε →
-    True  -- TODO: requires solution trajectories from ODE.lean
+  ∀ ε > 0, ∃ δ > 0, ∀ x₀ ∈ Simplex Q, ‖x₀ - x‖ < δ →
+    ∀ sol : ℝ → (Q → ℝ),
+      (sol 0 = x₀ ∧ Continuous sol ∧
+        ∀ t ≥ 0, HasDerivAt sol (C.drift (sol t)) t ∧ sol t ∈ Simplex Q) →
+      ∀ t ≥ 0, ‖sol t - x‖ < ε
 
 /-- An equilibrium is asymptotically stable if trajectories converge to it. -/
 def IsAsymptoticallyStable {Q : Type*} [Fintype Q]
     (C : MeanFieldChoreography Q) (x : Q → ℝ) : Prop :=
   IsStable C x ∧
-  ∃ δ > 0, ∀ x₀ ∈ Simplex Q, ‖x₀ - x‖ < δ →
-    True  -- TODO: limit as t → ∞ equals x
+  ∀ ε > 0, ∃ δ > 0, ∀ x₀ ∈ Simplex Q, ‖x₀ - x‖ < δ →
+    ∀ sol : ℝ → (Q → ℝ),
+      (sol 0 = x₀ ∧ Continuous sol ∧
+        ∀ t ≥ 0, HasDerivAt sol (C.drift (sol t)) t ∧ sol t ∈ Simplex Q) →
+      Filter.Tendsto sol Filter.atTop (nhds x)
 
 end
 

@@ -53,7 +53,7 @@ structure StrictLyapunovData (F : PhasePoint n → PhasePoint n) (x : PhasePoint
 
 /-- Asymptotic stability expressed via existence of strict Lyapunov data. -/
 def IsAsymptoticallyStable (F : PhasePoint n → PhasePoint n) (x : PhasePoint n) : Prop :=
-  ∃ _L : StrictLyapunovData F x, True
+  Nonempty (StrictLyapunovData F x)
 
 /-! ## Exponential Convergence (Energy-Based Wrapper) -/
 
@@ -115,7 +115,7 @@ theorem damped_asymptotically_stable (H : ConvexHamiltonian n) (d : Damping) (x_
     (L : StrictLyapunovData (dampedDrift H d) x_eq) :
     IsAsymptoticallyStable (dampedDrift H d) x_eq := by
   -- Existence of strict Lyapunov data is the stability certificate.
-  exact ⟨L, trivial⟩
+  exact ⟨L⟩
 
 end
 

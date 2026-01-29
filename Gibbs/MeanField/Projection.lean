@@ -121,11 +121,11 @@ theorem projection_exists {Q : Type*} [Fintype Q] [DecidableEq Q]
     (hdecomp : ∀ x ∈ Simplex Q, ∃ coeffs : Fin P.numRules → ℝ,
       (∀ i, 0 ≤ coeffs i) ∧
       ∀ q, P.targetDrift x q = ∑ i, coeffs i * (P.template i q : ℝ)) :
-    ∃ (_sol : ProjectionSolution Q P), True := by
+    Nonempty (ProjectionSolution Q P) := by
   -- Build rates from Classical.choose of the decomposition
   have hspec := fun x (hx : x ∈ Simplex Q) => (hdecomp x hx).choose_spec
   refine ⟨⟨fun i x => if h : x ∈ Simplex Q then (hdecomp x h).choose i else 0,
-    fun i x hx => ?_, fun x hx q => ?_⟩, trivial⟩
+    fun i x hx => ?_, fun x hx q => ?_⟩⟩
   · -- Non-negativity: chosen coefficients are non-negative
     simp only [dif_pos hx]; exact (hspec x hx).1 i
   · -- Produces drift: decomposition matches target
