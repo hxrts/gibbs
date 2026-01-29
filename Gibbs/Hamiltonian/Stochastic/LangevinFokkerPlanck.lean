@@ -37,14 +37,19 @@ lemma toDual_symm_innerSL_ofLp (v : Config n) (i : Fin n) :
       inner ℝ ((InnerProductSpace.toDual ℝ (Config n)).symm ((innerSL ℝ) v))
           (EuclideanSpace.single i (1 : ℝ)) =
         (innerSL ℝ v) (EuclideanSpace.single i (1 : ℝ)) := by
-    simpa using
+    exact
       (InnerProductSpace.toDual_symm_apply
         (x := EuclideanSpace.single i (1 : ℝ)) (y := (innerSL ℝ) v))
   have h'' :
       inner ℝ ((InnerProductSpace.toDual ℝ (Config n)).symm ((innerSL ℝ) v))
           (EuclideanSpace.single i (1 : ℝ)) =
         inner ℝ v (EuclideanSpace.single i (1 : ℝ)) := by
-    simpa [innerSL_apply_apply] using h'
+    calc
+      inner ℝ ((InnerProductSpace.toDual ℝ (Config n)).symm ((innerSL ℝ) v))
+          (EuclideanSpace.single i (1 : ℝ)) =
+          (innerSL ℝ v) (EuclideanSpace.single i (1 : ℝ)) := h'
+      _ = inner ℝ v (EuclideanSpace.single i (1 : ℝ)) := by
+            simp [innerSL_apply_apply]
   have h :
       inner ℝ (EuclideanSpace.single i (1 : ℝ))
           ((InnerProductSpace.toDual ℝ (Config n)).symm ((innerSL ℝ) v)) =
@@ -175,7 +180,7 @@ theorem gibbs_is_stationary (L : LangevinParams n) (Z : ℝ) (hZ : Z ≠ 0) :
       ring_nf
       · erw [fderiv_exp] <;> norm_num [L.V_diff.differentiableAt]
         ring_nf
-        rw [fderiv_const_mul (ha := L.V_diff.differentiableAt)] <;> norm_num
+        rw [fderiv_const_mul (ha := L.V_diff.differentiableAt)]; norm_num
         ring_nf
       ·
         exact DifferentiableAt.exp
@@ -212,7 +217,7 @@ theorem gibbs_is_stationary (L : LangevinParams n) (Z : ℝ) (hZ : Z ≠ 0) :
                 (fun p' : Config n =>
                   -(L.V x.1 * L.kT⁻¹) + L.kT⁻¹ * ‖p'‖ ^ 2 * (-1 / 2)) x.2 := by
           simpa [mul_comm, mul_left_comm, mul_assoc] using hdiff_inner_p
-        erw [fderiv_exp (hc := hdiff_inner_p_comm)] <;> norm_num [fderiv_deriv]
+        erw [fderiv_exp (hc := hdiff_inner_p_comm)]; norm_num [fderiv_deriv]
         ring_nf
         ·
           have h_grad :
@@ -228,7 +233,7 @@ theorem gibbs_is_stationary (L : LangevinParams n) (Z : ℝ) (hZ : Z ≠ 0) :
                 (d := (1 / 2)) (x := x.2) (hc := hdiff_LkT_mul_norm)]
           rw [fderiv_const_mul (a := fun y : Config n => ‖y‖ ^ 2) (b := L.kT⁻¹)
                 (x := x.2) (ha := hdiff_norm_sq _)]
-          simp [h_grad, toDual_symm_innerSL_ofLp, smul_smul, mul_comm, mul_left_comm, mul_assoc]
+          simp [h_grad, smul_smul, mul_comm, mul_left_comm, mul_assoc]
   -- Substitute the simplified gradient terms into the expressions for J_p and the divergence.
   have h_J_p :
       ∀ p' : Config n,
@@ -273,7 +278,7 @@ theorem gibbs_is_stationary (L : LangevinParams n) (Z : ℝ) (hZ : Z ≠ 0) :
                 (fun p'' : Config n =>
                   -(L.kT⁻¹ * L.V x.1) + L.kT⁻¹ * ‖p''‖ ^ 2 * (-1 / 2)) p' := by
           simpa [mul_comm, mul_left_comm, mul_assoc] using hdiff_inner_p'
-        rw [fderiv_exp (hc := hdiff_inner_p'_comm)] <;>
+        rw [fderiv_exp (hc := hdiff_inner_p'_comm)];
           norm_num [fderiv_deriv, mul_assoc, mul_comm, mul_left_comm]
         ring_nf
         ·
@@ -290,23 +295,21 @@ theorem gibbs_is_stationary (L : LangevinParams n) (Z : ℝ) (hZ : Z ≠ 0) :
             convert HasFDerivAt.fderiv (hasFDerivAt_id p' |> HasFDerivAt.norm_sq) using 1
             norm_num [two_smul]
             rfl
-          simp [h_grad_p'', toDual_symm_innerSL_ofLp, smul_smul, mul_comm, mul_left_comm, mul_assoc]
-    simp_all +decide [mul_assoc, mul_comm, mul_left_comm, smul_smul, smul_sub, sub_eq_add_neg]
-    simp +decide [← mul_assoc, L.kT_pos.ne']
+          simp [h_grad_p'', smul_smul, mul_comm, mul_left_comm, mul_assoc]
+    simp_all +decide [mul_assoc, mul_comm, mul_left_comm, smul_smul, sub_eq_add_neg]
+    simp +decide [L.kT_pos.ne']
   simp_all +decide [FokkerPlanckRHS, gibbsStationary]
   unfold divergence
-  simp_all +decide [Finset.mul_sum _ _ _, Finset.sum_mul _ _ _, mul_assoc, mul_comm,
-    mul_left_comm, inner_smul_left, inner_smul_right]
+  simp_all +decide [mul_assoc, mul_comm]
   rw [Finset.sum_congr rfl
     (fun i _ =>
       show gradient (fun y => gradient L.V x.1 i * gibbsDensity L Z (x.1, y)) x.2 i =
           gradient L.V x.1 i * gradient (fun y => gibbsDensity L Z (x.1, y)) x.2 i from ?_)]
-  simp_all +decide [Finset.mul_sum _ _ _, Finset.sum_mul _ _ _, mul_assoc, mul_comm,
-    mul_left_comm, inner_smul_left, inner_smul_right]
+  simp_all +decide [mul_assoc, mul_comm]
   ring_nf
   ·
     field_simp
-    simp_all +decide [Finset.sum_div _ _ _, mul_assoc, mul_comm, mul_left_comm, inner]
+    simp_all +decide [mul_assoc, mul_comm, inner]
     ring_nf!
     grind
   ·
