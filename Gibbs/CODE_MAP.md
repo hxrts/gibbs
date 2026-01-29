@@ -297,7 +297,8 @@ Bridges Hamiltonian mechanics with session-type choreography by partitioning pha
 | `Langevin.lean` | Connects Langevin dynamics to Nosé–Hoover. Proves simplex projection preserves zero-sum, and that Nosé–Hoover at ξ=γ matches damped dynamics. Both target the same Gibbs equilibrium. |
 | `ThermostatOscillator.lean` | Nosé–Hoover applied to oscillator. Proves equipartition at equilibrium (‖p‖² = n·kT when ξ̇ = 0), bounded orbits from energy conservation, and perpetual oscillation (positive energy ⟹ never reaches origin). |
 | `GradientDescent.lean` | Heavy-ball optimization as Hamiltonian mechanics. When momentum equals −∇V, the configuration-space trajectory reduces to gradient flow q̇ = −∇V. |
-| `LatticeMaxwell.lean` | Maxwell's equations on a discrete 3D lattice with domain decomposition. Defines curl operators (placeholder stubs returning 0), proves energy nonnegativity, and shows local/global update coherence by `rfl`. Assumes `σ_pos : ∀ p, 0 < σ p` (conductivity is positive). |
+| `GradientDescentMinimizer.lean` | Existence/uniqueness of minimizers for strongly convex objectives (requires `Continuous f`), plus `minimizer` and `minimizer_spec`. |
+| `LatticeMaxwell.lean` | Maxwell's equations on a discrete 3D lattice with Yee-style edges/faces. Implements explicit `curlE`/`curlB` stencils, defines ghost edges/faces, and proves local/global update coherence on subdomain edges/faces when ghost data agree on stencils. Proves energy nonnegativity and zero-field minimizer. Assumes `σ_pos : ∀ e, 0 < σ e` (edge conductivity positive) and periodic indexing (`NeZero` sizes) for curl shifts. |
 
 ---
 

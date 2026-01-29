@@ -6,6 +6,7 @@ import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.MeasureTheory.Measure.WithDensity
+import Gibbs.Hamiltonian.GaussianIntegrals
 
 /-
 The Problem. We need a lightweight vocabulary for Gibbs measures

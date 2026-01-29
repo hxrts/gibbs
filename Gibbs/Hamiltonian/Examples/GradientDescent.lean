@@ -59,6 +59,75 @@ theorem heavyBall_q_equals_gradientFlow (n : ℕ) (V : Config n → ℝ)
   simp [heavyBallDrift, dampedDrift_q, momentumHamiltonian, gradientFlow,
     ConvexHamiltonian.velocity, quadraticKinetic_grad, hp]
 
+/-! ## Strong Convexity and Lyapunov Scaffolding -/
+
+/-- Strong convexity with parameter m. -/
+structure StronglyConvex (f : Config n → ℝ) (m : ℝ) : Prop where
+  /-- Strong convexity parameter is positive. -/
+  m_pos : 0 < m
+  /-- Quadratic lower bound with gradient linearization. -/
+  lower_bound :
+    ∀ x y, f y ≥ f x + inner (𝕜 := ℝ) (gradient f x) (y - x) +
+      (m / 2) * ‖y - x‖ ^ 2
+
+/-- Lipschitz gradient with constant L. -/
+structure LipschitzGradient (f : Config n → ℝ) (L : ℝ) : Prop where
+  /-- Lipschitz constant is positive. -/
+  L_pos : 0 < L
+  /-- Gradient is L-Lipschitz. -/
+  lipschitz : ∀ x y, ‖gradient f x - gradient f y‖ ≤ L * ‖x - y‖
+
+/-- Condition number κ = L/m. -/
+def conditionNumber (m L : ℝ) : ℝ := L / m
+
+/-- Optimal damping used in heavy-ball rates. -/
+def optimalDamping (m : ℝ) : ℝ := 2 * Real.sqrt m
+
+-- Existence/uniqueness of minimizers is proved in
+-- `Gibbs/Hamiltonian/Examples/GradientDescentMinimizer.lean`.
+
+/-- Heavy-ball Lyapunov candidate around a reference point. -/
+noncomputable def heavyBallLyapunov (n : ℕ) (f : Config n → ℝ)
+    (x_star : Config n) (ε : ℝ) (x : PhasePoint n) : ℝ :=
+  (f x.q - f x_star) + (1 / 2) * ‖x.p‖ ^ 2 +
+    ε * inner (𝕜 := ℝ) (x.q - x_star) x.p
+
+/-- Strong convexity gives a quadratic lower bound at a stationary point. -/
+theorem strongConvex_bound_f (f : Config n → ℝ) (m : ℝ)
+    (hf : StronglyConvex (n := n) f m) (x_star : Config n)
+    (h_grad : gradient f x_star = 0) (x : Config n) :
+    f x ≥ f x_star + (m / 2) * ‖x - x_star‖ ^ 2 := by
+  have h := hf.lower_bound x_star x
+  simpa [h_grad] using h
+
+/-- Lipschitz gradient gives a bound on ‖∇f(x)‖ around a stationary point. -/
+theorem lipschitz_bound_gradient (f : Config n → ℝ) (L : ℝ)
+    (hf : LipschitzGradient (n := n) f L) (x_star : Config n)
+    (h_grad : gradient f x_star = 0) (x : Config n) :
+    ‖gradient f x‖ ≤ L * ‖x - x_star‖ := by
+  have h := hf.lipschitz x x_star
+  simpa [h_grad] using h
+
+/-- Lipschitz gradient bounds the inner product with the displacement. -/
+theorem lipschitz_bound_inner (f : Config n → ℝ) (L : ℝ)
+    (hf : LipschitzGradient (n := n) f L) (x_star : Config n)
+    (h_grad : gradient f x_star = 0) (x : Config n) :
+    inner (𝕜 := ℝ) (x - x_star) (gradient f x) ≤ L * ‖x - x_star‖ ^ 2 := by
+  have hcs :
+      inner (𝕜 := ℝ) (x - x_star) (gradient f x) ≤
+        ‖x - x_star‖ * ‖gradient f x‖ := by
+    exact (le_trans (le_abs_self _) (abs_real_inner_le_norm _ _))
+  have hgrad := lipschitz_bound_gradient (n := n) f L hf x_star h_grad x
+  have hmul :
+      ‖x - x_star‖ * ‖gradient f x‖ ≤ ‖x - x_star‖ * (L * ‖x - x_star‖) := by
+    exact mul_le_mul_of_nonneg_left hgrad (norm_nonneg _)
+  calc
+    inner (𝕜 := ℝ) (x - x_star) (gradient f x)
+        ≤ ‖x - x_star‖ * ‖gradient f x‖ := hcs
+    _ ≤ ‖x - x_star‖ * (L * ‖x - x_star‖) := hmul
+    _ = L * ‖x - x_star‖ ^ 2 := by
+          ring
+
 end
 
 end Gibbs.Hamiltonian.Examples
