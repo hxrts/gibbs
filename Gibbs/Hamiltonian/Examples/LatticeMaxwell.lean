@@ -291,6 +291,14 @@ def Subdomain.containsEdge (S : Subdomain L) (e : Edge L) : Prop :=
 def Subdomain.containsFace (S : Subdomain L) (f : Face L) : Prop :=
   f.1 ∈ S.points
 
+instance (S : Subdomain L) (e : Edge L) : Decidable (S.containsEdge e) := by
+  dsimp [Subdomain.containsEdge]
+  infer_instance
+
+instance (S : Subdomain L) (f : Face L) : Decidable (S.containsFace f) := by
+  dsimp [Subdomain.containsFace]
+  infer_instance
+
 /-! ## Ghost Sets -/
 
 /-- Ghost edges: outside the subdomain but needed by a face inside. -/
@@ -382,7 +390,11 @@ theorem localMaxwellUpdate_eq_on_edges (L : Lattice3D)
     apply curlB_local L
     intro f hf
     exact extendMagnetic_eq_on_stencil L S x.2 B_ghost e hedge hghostB f hf
-  simp [localMaxwellUpdate, maxwellUpdate, hE, hcurl]
+  have hOhm :
+      ohmicDamping L sys (extendElectric S x.1 E_ghost) e =
+        ohmicDamping L sys x.1 e := by
+    simp [ohmicDamping, hE]
+  simp [localMaxwellUpdate, maxwellUpdate, hE, hcurl, hOhm]
 
 /-- Local update matches global update on faces in the subdomain. -/
 theorem localMaxwellUpdate_eq_on_faces (L : Lattice3D)
