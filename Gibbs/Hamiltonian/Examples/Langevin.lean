@@ -104,19 +104,18 @@ theorem langevin_noseHoover_same_equilibrium (H : ConvexHamiltonian n) (kT : ℝ
 noncomputable def langevinSDE (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ) :
     Gibbs.Hamiltonian.Stochastic.SDE n := by
   -- Noise lives in the momentum component; the position noise is zero.
-  refine { drift := dampedDrift H d, diffusion := ?_ }
-  intro _x
-  exact (0, (σ : ℝ) • (0 : Config n))
+  refine { drift := dampedDrift H d, noise := ?_ }
+  intro w
+  exact (0, (σ : ℝ) • w)
 
 /-- A concrete Langevin process from a chosen integration theory and Brownian path. -/
-noncomputable def langevinProcess (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ)
-    (I : Gibbs.Hamiltonian.Stochastic.SDEIntegral n)
-    (W : Gibbs.Hamiltonian.Stochastic.BrownianPath n)
-    (X : ℝ → PhasePoint n)
-    (hX : Gibbs.Hamiltonian.Stochastic.SolvesSDE I (langevinSDE H d σ) W X) :
-    Gibbs.Hamiltonian.Stochastic.SDEProcess n :=
+noncomputable def langevinProcess {Ω : Type*} [MeasurableSpace Ω]
+    (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ)
+    (W : Gibbs.Hamiltonian.Stochastic.BrownianMotion (Ω := Ω) n)
+    (X : Gibbs.Hamiltonian.Stochastic.StochasticProcess (Ω := Ω) n)
+    (hX : Gibbs.Hamiltonian.Stochastic.SolvesSDE (Ω := Ω) (langevinSDE H d σ) W X) :
+    Gibbs.Hamiltonian.Stochastic.SDEProcess (Ω := Ω) n :=
   { sde := langevinSDE H d σ
-    integral := I
     brownian := W
     path := X
     solves := hX }
