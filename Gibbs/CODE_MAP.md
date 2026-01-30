@@ -9,16 +9,24 @@ Gibbs/Core.lean
 │   ├── Hamiltonian/ConvexHamiltonian.lean
 │   │   ├── Hamiltonian/DampedFlow.lean
 │   │   │   ├── Hamiltonian/Choreography.lean
+│   │   │   ├── Hamiltonian/SymplecticFlow.lean
 │   │   │   ├── Hamiltonian/Examples/HarmonicOscillator.lean
 │   │   │   └── Hamiltonian/Examples/Langevin.lean
+│   │   ├── Hamiltonian/GeneralHamiltonian.lean
 │   │   ├── Hamiltonian/Legendre.lean
 │   │   │   └── Hamiltonian/FenchelMoreau.lean
 │   │   ├── Hamiltonian/NoseHoover.lean
 │   │   │   └── Hamiltonian/Examples/ThermostatOscillator.lean
 │   │   ├── Hamiltonian/Examples/GradientDescent.lean
+│   │   │   ├── Hamiltonian/Examples/GradientDescentMinimizer.lean
+│   │   │   └── Hamiltonian/Examples/HeavyBallConvergence.lean
 │   │   └── Hamiltonian/Examples/LatticeMaxwell.lean
 │   ├── Hamiltonian/Ergodic.lean
-│   └── Hamiltonian/Stability.lean
+│   │   └── Hamiltonian/GaussianIntegrals.lean
+│   ├── Hamiltonian/Stability.lean
+│   └── Hamiltonian/Stochastic/
+│       ├── Hamiltonian/Stochastic/Basic.lean
+│       └── Hamiltonian/Stochastic/LangevinFokkerPlanck.lean
 │
 ├── ContinuumField/Basic.lean
 │   ├── ContinuumField/Kernel.lean
@@ -44,6 +52,7 @@ Gibbs/Core.lean
 ```
 
 Facade modules: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`.
+Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic` + `LangevinFokkerPlanck`).
 
 ---
 
@@ -100,7 +109,7 @@ Defines Hamiltonians with separable, convex kinetic and potential energy. Convex
 | def | `harmonicOscillator`, `harmonicOscillatorStrict` | Canonical example |
 | theorem | `quadraticKinetic_convex` | `smul` on norm-sq convexity |
 | theorem | `quadraticKinetic_grad` | `ext_inner_right`, `fderiv_norm_sq_apply`, `simp` |
-| theorem | `quadraticPotential_strictConvex` | `refine`, `nlinarith` on norm identity. Requires `[NeZero n]` |
+| theorem | `quadraticPotential_strictConvex` | `refine`, `nlinarith`. Requires `[NeZero n]` |
 | theorem | `energy_nonneg` | `positivity` |
 | theorem | `energy_eq_zero_iff` | `linarith` |
 
@@ -115,6 +124,21 @@ Defines Hamiltonians with separable, convex kinetic and potential energy. Convex
 
 **Strategy**: inner-product identities, `positivity`, `nlinarith`.
 
+#### `Hamiltonian/GeneralHamiltonian.lean`
+
+Extends the Hamiltonian framework to non-separable, potentially non-convex Hamiltonians H(q,p). Provides gradients in both components and the canonical symplectic drift, plus a coercion from the separable convex case.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `GeneralHamiltonian n` | H : PhasePoint n → ℝ with partial differentiability |
+| def | `GeneralHamiltonian.grad_q`, `.grad_p` | Partial gradients |
+| def | `GeneralHamiltonian.drift` | Symplectic drift (∇_p H, −∇_q H) |
+| def | `ConvexHamiltonian.toGeneral` | Coercion from separable convex to general |
+
+**Assumptions on `GeneralHamiltonian`:**
+- `diff_q : ∀ p, Differentiable ℝ (fun q => H (q, p))` — differentiable in position
+- `diff_p : ∀ q, Differentiable ℝ (fun p => H (q, p))` — differentiable in momentum
+
 #### `Hamiltonian/DampedFlow.lean`
 
 Adds linear friction to Hamiltonian dynamics. The damped drift ṗ = −∇V − γp dissipates energy at rate −γ‖p‖², which is the engine behind all stability results. Lipschitz regularity of the drift is established for ODE well-posedness.
@@ -128,19 +152,28 @@ Adds linear friction to Hamiltonian dynamics. The damped drift ṗ = −∇V −
 | theorem | `dampedDrift_lipschitz` | Lipschitz on bounded sets |
 | theorem | `dampedDrift_hasLipschitz` | Explicit Lipschitz constant |
 
-**Assumptions on `Damping`:**
-- `γ_pos : 0 < γ` — damping coefficient is strictly positive
-
 **Key theorem hypotheses:**
-- `energy_dissipation` assumes `∀ p, gradient H.T p = p` (i.e. T is quadratic kinetic energy ½‖p‖²)
-- `energy_decreasing` takes a derivative certificate as hypothesis: the caller provides `HasDerivAt` for the energy along a solution
-- `dampedDrift_lipschitz` assumes `LipschitzWith K_T (gradient H.T)` and `LipschitzWith K_V (gradient H.V)` — both gradients are globally Lipschitz
+- `energy_dissipation` assumes `∀ p, gradient H.T p = p` (quadratic kinetic energy)
+- `energy_decreasing` takes a derivative certificate as hypothesis
+- `dampedDrift_lipschitz` assumes `LipschitzWith K_T (gradient H.T)` and `LipschitzWith K_V (gradient H.V)`
 
 **Strategy**: Lipschitz composition, `mul_le_mul_of_nonneg`.
 
+#### `Hamiltonian/SymplecticFlow.lean`
+
+Undamped (symplectic) Hamiltonian dynamics: q̇ = ∇_p T, ṗ = −∇_q V with no friction term. Energy is exactly conserved. Provides the conservative baseline against which damped and thermostatted flows are compared.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `symplecticDrift` | Undamped Hamiltonian drift |
+| theorem | `symplectic_energy_conserved` | dH/dt = 0 along symplectic drift |
+| theorem | `harmonicOscillator_symplectic_energy` | Specialization to harmonic oscillator |
+
+**Strategy**: inner-product cancellation, `ring`.
+
 #### `Hamiltonian/Legendre.lean`
 
-Develops the Legendre transform and Bregman divergence. The Bregman divergence D_f(x,y) measures "how far x is from y according to f" and serves as a Lyapunov function for convergence proofs. The key insight is that convexity of f implies D_f ≥ 0, and strict convexity makes it a true distance (zero only at equality).
+Develops the Legendre transform and Bregman divergence. The Bregman divergence D_f(x,y) measures "how far x is from y according to f" and serves as a Lyapunov function for convergence proofs.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -154,13 +187,12 @@ Develops the Legendre transform and Bregman divergence. The Bregman divergence D
 **Key theorem hypotheses:**
 - `bregman_nonneg` requires `ConvexOn ℝ Set.univ f` and `Differentiable ℝ f`
 - `bregman_eq_zero_iff` requires `StrictConvexOn ℝ Set.univ f` and `Differentiable ℝ f`
-- `bregman_lyapunov_data` additionally requires `Continuous (bregman f · x_eq)` and a monotone-decrease certificate along solutions
 
 **Strategy**: calculus on line maps (`lineMap_comp_convex`), slope inequalities, `ring`.
 
 #### `Hamiltonian/FenchelMoreau.lean`
 
-Proves the Fenchel–Moreau theorem: a lower-semicontinuous convex function equals its double conjugate (f = f**). This is the deepest result in the Hamiltonian layer, using geometric Hahn–Banach separation to construct supporting hyperplanes at every point of the epigraph.
+Proves the Fenchel–Moreau theorem: a lower-semicontinuous convex function equals its double conjugate (f = f**). Uses geometric Hahn–Banach separation to construct supporting hyperplanes at every point of the epigraph.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -173,23 +205,20 @@ Proves the Fenchel–Moreau theorem: a lower-semicontinuous convex function equa
 | theorem | `supporting_affine` | Supporting hyperplane at boundary of epigraph |
 | theorem | `fenchel_moreau` | **f = f\*\*** for lsc convex f |
 
-**Key predicates (hypotheses tracked as separate definitions):**
-- `HasFiniteConjugate f` — `∀ p, BddAbove (range (fun x => ⟨p,x⟩ − f x))` — conjugate is finite everywhere
-- `HasFiniteBiconjugate f` — `∀ x, BddAbove (range (fun p => ⟨x,p⟩ − f* p))` — biconjugate is finite
-- `IsSubgradientAt f x p` — `∀ y, f y ≥ f x + ⟨p, y − x⟩` — p is a subgradient of f at x
+**Key predicates:**
+- `HasFiniteConjugate f` — conjugate is finite everywhere
+- `HasFiniteBiconjugate f` — biconjugate is finite
+- `IsSubgradientAt f x p` — p is a subgradient of f at x
 - `SubgradientExists f` — every point admits a subgradient
 
 **Theorem hypotheses for `fenchel_moreau`:**
-- `ConvexOn ℝ Set.univ f` — f is convex
-- `LowerSemicontinuous f` — f is lower-semicontinuous
-- `HasFiniteConjugate f` — conjugate is finite
-- `HasFiniteBiconjugate f` — biconjugate is finite
+- `ConvexOn ℝ Set.univ f`, `LowerSemicontinuous f`, `HasFiniteConjugate f`, `HasFiniteBiconjugate f`
 
-**Strategy**: `ciSup_le` / `le_ciSup`, geometric Hahn–Banach (`geometric_hahn_banach_point_closed`), rescaling. The proof of f ≤ f** constructs a supporting hyperplane at each point below the graph, using Hahn–Banach to separate the point from the closed convex epigraph.
+**Strategy**: `ciSup_le` / `le_ciSup`, geometric Hahn–Banach (`geometric_hahn_banach_point_closed`), rescaling.
 
 #### `Hamiltonian/NoseHoover.lean`
 
-Implements the Nosé–Hoover thermostat, which extends Hamiltonian dynamics with a feedback variable ξ that injects or removes energy to drive the system toward a target temperature. The extended system conserves a modified Hamiltonian, and the equilibrium condition ξ̇ = 0 recovers the equipartition theorem.
+Implements the Nosé–Hoover thermostat, which extends Hamiltonian dynamics with a feedback variable ξ that injects or removes energy to drive the system toward a target temperature. Includes ergodicity scaffolding connecting to the Gibbs measure.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -201,23 +230,18 @@ Implements the Nosé–Hoover thermostat, which extends Hamiltonian dynamics wit
 | theorem | `thermostat_cools_when_cold` | ξ̇ < 0 when ‖p‖² < n·kT |
 | theorem | `extended_energy_conserved` | Extended Hamiltonian is constant of motion |
 | theorem | `equipartition_target` | ξ̇ = 0 at ‖p‖² = n·kT |
-
-**Assumptions on `ThermostatParams`:**
-- `Q_pos : 0 < Q` — thermostat inertia is positive
-- `kT_pos : 0 < kT` — target temperature is positive
+| def | `noseHooverInvariantMeasure` | Gibbs-style measure on extended phase space |
+| def | `IsMeasurePreserving` | Flow preserves a measure |
+| theorem | `noseHoover_ergodic` | Ergodicity wrapper consuming `IsErgodic` hypothesis |
 
 **Key theorem hypotheses:**
 - `subsystem_energy_rate` assumes `∀ p, gradient H.T p = p` (quadratic kinetic energy)
-- `energy_injection_iff` additionally requires `x.p ≠ 0` (nonzero momentum)
-- `thermostat_cools_when_cold` requires `‖x.p‖² < n * params.kT` (system is below target temperature)
+- `energy_injection_iff` additionally requires `x.p ≠ 0`
 - `extended_energy_conserved` takes a derivative certificate as hypothesis
-- `noseHoover_lipschitz_on` assumes Lipschitz regularity on a bounded ball (passed in)
 
 **Strategy**: `nlinarith` for thermodynamic inequalities.
 
 #### `Hamiltonian/Ergodic.lean`
-
-**Extra imports**: `Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap` (for withDensity integral identities).
 
 Defines the Gibbs/Boltzmann ensemble and the ergodic hypothesis. The partition function normalizes the Boltzmann weight exp(−V/kT) into a probability density; ergodicity asserts that time averages along trajectories converge to ensemble averages against this density.
 
@@ -226,29 +250,40 @@ Defines the Gibbs/Boltzmann ensemble and the ergodic hypothesis. The partition f
 | def | `partitionFunction`, `gibbsDensity`, `gibbsMeasure` | Boltzmann statistics |
 | def | `timeAverage`, `ensembleAverage` | Ergodic observables |
 | def | `IsErgodic` | Time average = ensemble average |
-| theorem | `measurable_gibbsDensity`, `aemeasurable_gibbsDensity` | measurability closure |
-| theorem | `integrable_gibbsDensity` | integrable under integrable weight |
+| theorem | `measurable_gibbsDensity`, `aemeasurable_gibbsDensity` | Measurability closure |
+| theorem | `integrable_gibbsDensity` | Integrable under integrable weight |
 | theorem | `gibbsDensity_nonneg` | `div_nonneg`, `exp_nonneg` |
 | theorem | `gibbsDensity_integral_eq_one` | `div_self` |
 | theorem | `partitionFunction_pos` | `integral_exp_pos` |
-| theorem | `gibbsMeasure_isProbability_of_integrable_nonzero` | probability measure |
+| theorem | `gibbsMeasure_isProbability_of_integrable_nonzero` | Probability measure |
 | theorem | `ensembleAverage_eq_integral_gibbsMeasure` | `withDensity` integral |
 | theorem | `timeAverage_const` | `simp` |
 | theorem | `ensembleAverage_const_eq` | `simp` |
+| theorem | `timeAverage_const_traj` | Time average along constant trajectory = f(q₀) |
+| theorem | `ergodic_of_constant_process` | Constant trajectory is ergodic at matching point |
 
 **Key theorem hypotheses:**
-- `gibbsDensity_integral_eq_one` requires `partitionFunction V kT μ ≠ 0` — the partition function is nonzero (system is not degenerate)
-- `partitionFunction_pos` requires `[NeZero μ]` (nontrivial base measure) and `Integrable (fun q => exp (−V q / kT)) μ` — the Boltzmann weight is integrable (confining potential)
-- `gibbsMeasure_isProbability_of_integrable_nonzero` requires `[NeZero μ]` and integrability of the Boltzmann weight
-- `ensembleAverage_eq_integral_gibbsMeasure` requires `Measurable V` for the density measurability
-- `timeAverage_const` requires `0 < T` — positive time window
-- `IsErgodic` requires `Continuous f`, `Integrable f μ` for each observable — only well-behaved observables are ergodic
+- `gibbsDensity_integral_eq_one` requires `partitionFunction V kT μ ≠ 0`
+- `partitionFunction_pos` requires `[NeZero μ]` and integrability of Boltzmann weight
+- `timeAverage_const_traj` requires `0 < T`
+- `IsErgodic` requires `Continuous f`, `Integrable f μ` for each observable
 
 **Strategy**: `integral_nonneg`, `integral_exp_pos`, `div_self`, `withDensity` integral identities.
 
+#### `Hamiltonian/GaussianIntegrals.lean`
+
+Gaussian integral identities over configuration space, used for equipartition-style calculations in the ergodic layer.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| theorem | `integral_gaussian_pi` | Gaussian integral over `Fin n → ℝ` (product form) |
+| theorem | `integral_gaussian_config` | Gaussian integral over `Config n` (norm-based form) |
+
+**Strategy**: product measure decomposition, one-dimensional Gaussian integral.
+
 #### `Hamiltonian/Stability.lean`
 
-Defines Lyapunov stability theory for Hamiltonian systems. A Lyapunov function V is a nonneg function that is zero at the equilibrium, positive elsewhere, and decreasing along trajectories. Strict Lyapunov (V → 0) gives asymptotic stability. Energy itself serves as a Lyapunov function for damped systems.
+Defines Lyapunov stability theory for Hamiltonian systems. A Lyapunov function V is a nonneg function that is zero at the equilibrium, positive elsewhere, and decreasing along trajectories. Strict Lyapunov gives asymptotic stability.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -259,23 +294,13 @@ Defines Lyapunov stability theory for Hamiltonian systems. A Lyapunov function V
 | def | `energyLyapunov` | Constructs Lyapunov data from energy |
 | theorem | `damped_asymptotically_stable` | Strict Lyapunov → asymptotic stability |
 
-**Assumptions on `LyapunovData F x`:**
-- `V_cont : Continuous V` — Lyapunov function is continuous
-- `V_zero : V x = 0` — vanishes at equilibrium
-- `V_pos : ∀ y, y ≠ x → 0 < V y` — strictly positive away from equilibrium
-- `V_nonneg : ∀ y, 0 ≤ V y` — globally nonnegative
-- `V_decreasing` — V is nonincreasing along any trajectory satisfying the ODE
-
-**Additional on `StrictLyapunovData`:**
-- `V_to_zero` — V tends to 0 along trajectories (asymptotic decay)
-
 **Key theorem hypotheses:**
-- `exponential_convergence` requires `0 ≤ c` (constant), `∀ x, ‖x − x_eq‖² ≤ c * H.energy x` (energy controls distance), and `ExponentialEnergyDecay` (exponential energy bound)
-- `energyLyapunov` requires energy continuity, positivity, vanishing at equilibrium, and a derivative certificate showing dH/dt = −γ‖p‖²
+- `exponential_convergence` requires `0 ≤ c`, `∀ x, ‖x − x_eq‖² ≤ c * H.energy x`, and `ExponentialEnergyDecay`
+- `energyLyapunov` requires energy continuity, positivity, vanishing at equilibrium, and a derivative certificate
 
 #### `Hamiltonian/Choreography.lean`
 
-Bridges Hamiltonian mechanics with session-type choreography by partitioning phase-space coordinates among roles. Each role owns a disjoint subset of the coordinate indices, and messages carry position, momentum, or force data between roles.
+Bridges Hamiltonian mechanics with session-type choreography by partitioning phase-space coordinates among roles.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -285,30 +310,67 @@ Bridges Hamiltonian mechanics with session-type choreography by partitioning pha
 | inductive | `PhaseMessage` | position, momentum, force, coupled |
 
 **Assumptions on `HamiltonianChoreography n`:**
-- `ham : ConvexHamiltonian n` — inherits all convexity/differentiability assumptions
-- `damping : Damping` — inherits γ > 0
-- `roles_partition : ∀ i, ∃! r, i ∈ roles r` — every coordinate index is owned by exactly one role (partition)
+- `roles_partition : ∀ i, ∃! r, i ∈ roles r` — every coordinate is owned by exactly one role
+
+#### `Hamiltonian/Stochastic/Basic.lean`
+
+Minimal stochastic scaffolding with constant-diffusion Itô integral. Provides a Brownian motion interface, SDE structure, and solution predicate using Mathlib's Bochner integral for the pathwise additive-noise case.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `StochasticProcess n` | `ℝ → Ω → PhasePoint n` |
+| structure | `BrownianMotion n` | path : ℝ → Ω → Config n, starts at origin |
+| structure | `SDE n` | drift + constant diffusion map |
+| def | `stochasticIntegral` | ∫₀ᵗ A dW = A(W_t − W_0) for constant A |
+| def | `SolvesSDE` | Integral solution predicate |
+| structure | `SDEProcess n` | Bundles SDE + Brownian + path + solves proof |
+
+**Limitations:**
+- Constant (state-independent) diffusion only
+- No general Itô/Stratonovich calculus
+
+#### `Hamiltonian/Stochastic/LangevinFokkerPlanck.lean`
+
+Full Langevin dynamics with Fokker–Planck equation and proof that the Gibbs density is stationary under the fluctuation–dissipation relation σ² = 2γkT.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `LangevinParams n` | V, γ, kT with positivity and differentiability |
+| def | `LangevinParams.σ` | Noise strength √(2γkT) |
+| theorem | `LangevinParams.σ_sq` | σ² = 2γkT |
+| structure | `BrownianIncrement n` | ΔW vector with time step |
+| class | `BrownianEffect n M` | Abstract effect providing Brownian increments |
+| def | `langevinStep` | One Euler–Maruyama step |
+| def | `Density n` | Time-dependent density ℝ → PhasePoint n → ℝ |
+| def | `FokkerPlanckRHS` | Fokker–Planck operator for Langevin dynamics |
+| def | `SatisfiesFokkerPlanck` | Density satisfies FP equation |
+| def | `gibbsDensity` | ρ(q,p) ∝ exp(−(½‖p‖² + V(q))/kT) |
+| def | `gibbsStationary` | Gibbs as time-independent density |
+| theorem | `gibbs_is_stationary` | **Gibbs density is FP-stationary** |
+
+**Strategy**: substitution of Gibbs density into FP operator, cancellation via `σ² = 2γkT`.
 
 #### Examples
 
 | File | Description |
 |------|-------------|
-| `HarmonicOscillator.lean` | Damped harmonic oscillator. Instantiates DampedFlow for the quadratic Hamiltonian; proves energy dissipation and decrease by specialization. |
-| `Langevin.lean` | Connects Langevin dynamics to Nosé–Hoover. Proves simplex projection preserves zero-sum, and that Nosé–Hoover at ξ=γ matches damped dynamics. Both target the same Gibbs equilibrium. |
-| `ThermostatOscillator.lean` | Nosé–Hoover applied to oscillator. Proves equipartition at equilibrium (‖p‖² = n·kT when ξ̇ = 0), bounded orbits from energy conservation, and perpetual oscillation (positive energy ⟹ never reaches origin). |
-| `GradientDescent.lean` | Heavy-ball optimization as Hamiltonian mechanics. When momentum equals −∇V, the configuration-space trajectory reduces to gradient flow q̇ = −∇V. |
-| `GradientDescentMinimizer.lean` | Existence/uniqueness of minimizers for strongly convex objectives (requires `Continuous f`), plus `minimizer` and `minimizer_spec`. |
-| `LatticeMaxwell.lean` | Maxwell's equations on a discrete 3D lattice with Yee-style edges/faces. Implements explicit `curlE`/`curlB` stencils, defines ghost edges/faces, and proves local/global update coherence on subdomain edges/faces when ghost data agree on stencils. Proves energy nonnegativity and zero-field minimizer. Assumes `σ_pos : ∀ e, 0 < σ e` (edge conductivity positive) and periodic indexing (`NeZero` sizes) for curl shifts. |
+| `HarmonicOscillator.lean` | Damped harmonic oscillator. Instantiates DampedFlow for the quadratic Hamiltonian; proves energy dissipation and decrease. |
+| `Langevin.lean` | Connects Langevin dynamics to Nosé–Hoover. Proves simplex projection preserves zero-sum, Nosé–Hoover at ξ=γ matches damped dynamics, and both target Gibbs equilibrium. Constructs `langevinProcess` via stochastic core. |
+| `ThermostatOscillator.lean` | Nosé–Hoover applied to oscillator. Proves equipartition at equilibrium, bounded orbits, and perpetual oscillation. |
+| `GradientDescent.lean` | Heavy-ball optimization as Hamiltonian mechanics. When p = −∇V(q), configuration trajectory reduces to gradient flow. |
+| `GradientDescentMinimizer.lean` | Existence and uniqueness of minimizers for strongly convex objectives. Proves coercivity, compactness on closed ball, and uniqueness via strict convexity. Provides `minimizer` and `minimizer_spec`. |
+| `HeavyBallConvergence.lean` | Lyapunov analysis for heavy-ball/momentum dynamics. Proves derivative formula, strong convexity + Young bounds, and exponential decay of modified energy via `heavyBallLyapunov_decay`. |
+| `LatticeMaxwell.lean` | Maxwell's equations on a discrete 3D lattice with Yee-style stencils. Implements `curlE`/`curlB`, ghost edges/faces, and local/global coherence. Proves energy nonnegativity and zero-field minimizer. |
 
 ---
 
 ### MeanField Layer
 
-The mean-field layer formalizes population dynamics over a finite set of local states. It models large populations where each agent occupies one of finitely many states, and transitions occur according to rate functions. The central result is ODE existence/uniqueness on the probability simplex via Picard–Lindelöf, with Lyapunov stability theory for equilibrium analysis.
+The mean-field layer formalizes population dynamics over a finite set of local states. The central result is ODE existence/uniqueness on the probability simplex via Picard–Lindelöf, with Lyapunov stability theory for equilibrium analysis.
 
 #### `MeanField/Basic.lean`
 
-Defines the probability simplex and population states. A population state is a vector of counts that sum to a positive total; the empirical measure normalizes these to fractions living on the simplex.
+Defines the probability simplex and population states.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -320,16 +382,11 @@ Defines the probability simplex and population states. A population state is a v
 | inductive | `TwoState` | up/down with Fintype |
 | theorem | `magnetizationOf_bounded` | |m| ≤ 1 |
 
-**Assumptions on `PopulationState Q`:**
-- `[Fintype Q]` — state space is finite
-- `total_eq : ∑ q, counts q = total` — counts sum correctly
-- `total_pos : total > 0` — population is non-empty
-
 **Typeclass context:** `[Fintype Q]` throughout.
 
 #### `MeanField/Choreography.lean`
 
-Defines the choreographic specification for mean-field dynamics: a drift function on the simplex that is Lipschitz, conserves total probability, and points inward at boundaries (so the simplex is forward-invariant). Equilibria are zeros of the drift.
+Defines the choreographic specification for mean-field dynamics: a drift function on the simplex that is Lipschitz, conserves total probability, and points inward at boundaries.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -337,16 +394,16 @@ Defines the choreographic specification for mean-field dynamics: a drift functio
 | def | `DriftFunction Q` | (Q → ℝ) → (Q → ℝ) with Conserves, IsLipschitz |
 | structure | `MeanFieldChoreography` | Drift + Lipschitz + conservation + boundary |
 | def | `IsEquilibrium` | F(x) = 0 and x ∈ Simplex |
-| def | `IsStable`, `IsAsymptoticallyStable` | ODE-style stability definitions via solution trajectories |
+| def | `IsStable`, `IsAsymptoticallyStable` | ODE-style stability definitions |
 
 **Assumptions on `MeanFieldChoreography Q`:**
-- `drift_lipschitz : ∃ L, DriftFunction.IsLipschitz drift L` — drift is Lipschitz on the simplex (needed for ODE uniqueness)
-- `drift_conserves : DriftFunction.Conserves drift` — `∀ x ∈ Simplex Q, ∑ q, drift x q = 0` (probability is conserved)
-- `boundary_nonneg : ∀ x ∈ Simplex Q, ∀ q, x q = 0 → 0 ≤ drift x q` — drift points inward at simplex boundary (no state fraction goes negative)
+- `drift_lipschitz` — drift is Lipschitz on the simplex
+- `drift_conserves` — `∀ x ∈ Simplex Q, ∑ q, drift x q = 0`
+- `boundary_nonneg` — drift points inward at simplex boundary
 
 #### `MeanField/Rules.lean`
 
-Builds drift functions compositionally from lists of population rules. Each rule specifies a stoichiometric update (which states gain/lose agents) and a rate function. Binary rules model pairwise interactions; unary rules model spontaneous transitions. Conservation and boundary invariance are proved by induction over the rule list.
+Builds drift functions compositionally from lists of population rules. Conservation and boundary invariance are proved by induction over the rule list.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -358,22 +415,11 @@ Builds drift functions compositionally from lists of population rules. Each rule
 | theorem | `driftFromRules_boundary_nonneg` | Simplex forward-invariance |
 | def | `MeanFieldChoreography.fromRules` | Constructs choreography from rule list |
 
-**Key predicates on rules:**
-- `PopRule.Conserves r` — `∑ q, r.update q = 0` — each rule conserves total count
-- `PopRule.HasNonNegRate r` — rate is nonneg on simplex
-- `PopRule.BoundaryNonneg r` — `∀ x ∈ Simplex, ∀ q, x q = 0 → 0 ≤ (update q : ℝ) * rate x` — rule doesn't push boundary states negative
-
-**Key theorem hypotheses:**
-- `massActionRate_nonneg` (binary and unary) requires `0 ≤ k` — nonneg rate constant
-- `driftFromRules_boundary_nonneg` requires `∀ r ∈ rules, PopRule.BoundaryNonneg r` — every rule respects boundaries
-- `driftFromRules_conserves` requires `∀ r ∈ rules, r.Conserves` — every rule conserves mass
-- `MeanFieldChoreography.fromRules` requires all of the above plus `∃ L, IsLipschitz (driftFromRules rules) L`
-
 **Strategy**: induction on `List`, Finset summation swaps, `by_cases` on state equality.
 
 #### `MeanField/LipschitzBridge.lean`
 
-Technical bridge between the project's Lipschitz predicate (defined on the simplex) and Mathlib's `LipschitzWith` typeclass (defined globally). Extends the drift function from the simplex to all of ℝ^Q while preserving the Lipschitz constant, and wraps it as a time-dependent ODE for Picard–Lindelöf.
+Technical bridge between the project's Lipschitz predicate (defined on the simplex) and Mathlib's `LipschitzWith` typeclass. Extends the drift from the simplex to all of ℝ^Q while preserving the Lipschitz constant.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -382,15 +428,11 @@ Technical bridge between the project's Lipschitz predicate (defined on the simpl
 | theorem | `extend_lipschitz` | Extension preserves Lipschitz constant |
 | def | `toTimeDep` | Wraps autonomous drift as time-dependent |
 
-**Key theorem hypotheses:**
-- `toLipschitzOnWith` requires `DriftFunction.IsLipschitz F K` — the simplex-local Lipschitz property
-- `extend_apply` requires `x ∈ Simplex Q` — extension agrees with original on simplex
-
 **Strategy**: `ENNReal` arithmetic, `Classical.choose_spec`.
 
 #### `MeanField/ODE.lean`
 
-ODE existence, uniqueness, and simplex invariance for mean-field dynamics. Uses Picard–Lindelöf for local existence (Lipschitz drift on a bounded set) and Gronwall's inequality for uniqueness. Also defines the linearized stability apparatus: Jacobian, Hurwitz condition, and ODE-level Lyapunov structures.
+ODE existence, uniqueness, and simplex invariance for mean-field dynamics. Uses Picard–Lindelöf for local existence and Gronwall's inequality for uniqueness.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -403,20 +445,15 @@ ODE existence, uniqueness, and simplex invariance for mean-field dynamics. Uses 
 | structure | `LyapunovData`, `StrictLyapunovData` | ODE-level Lyapunov structures |
 
 **Key theorem hypotheses:**
-- `ode_exists` requires `[Nonempty Q]`, `x₀ ∈ Simplex Q`, `∀ x, ∑ q, extendDrift x q = 0` (conservation on extension), and boundary inwardness on extension
-- `ode_unique` requires two solutions sharing the same initial condition; uniqueness follows from `LipschitzWith K` on the extended drift
-- `simplex_invariant` same hypotheses as `ode_exists`
-- `fixed_point_is_constant` requires `IsEquilibrium C x` plus the ODE hypotheses
-
-**Assumptions on `LyapunovData F x` (MeanField version):**
-- `V_cont`, `V_zero`, `V_pos`, `V_nonneg`, `V_decreasing` — same structure as Hamiltonian version but for (Q → ℝ)-valued trajectories
+- `ode_exists` requires `[Nonempty Q]`, `x₀ ∈ Simplex Q`, conservation and boundary on extension
+- `ode_unique` requires two solutions sharing initial condition; Gronwall from `LipschitzWith K`
 
 **Definition:**
-- `IsHurwitz F x` — `∀ μ : ℂ, HasEigenvalue (toLin' (JacobianComplex F x)) μ → μ.re < 0` — all eigenvalues have negative real part
+- `IsHurwitz F x` — all eigenvalues of `Jacobian F x` have negative real part
 
 #### `MeanField/Existence.lean`
 
-Carries out the Picard–Lindelöf construction and proves simplex forward-invariance by a Gronwall-type argument. The simplex is bounded (finite-dimensional simplex), the drift is Lipschitz, so a global solution exists. Forward invariance uses a scalar Gronwall inequality: if a state fraction is zero and the drift is inward, the fraction stays nonneg.
+Carries out the Picard–Lindelöf construction and proves simplex forward-invariance by a Gronwall-type argument.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -425,15 +462,11 @@ Carries out the Picard–Lindelöf construction and proves simplex forward-invar
 | theorem | `simplex_forward_invariant` | Nonneg + sum-one preserved |
 | def | `MeanFieldChoreography.solution` | Canonical solution via `Classical.choose` |
 
-**Key theorem hypotheses:**
-- `simplex_forward_invariant` requires `LipschitzWith K C.drift` (global Lipschitz), `∀ x, ∑ q, C.drift x q = 0` (conservation), `∀ x q, x q = 0 → 0 ≤ C.drift x q` (boundary), `sol 0 ∈ Simplex Q` (initial condition), `Continuous sol`, and the derivative condition
-- `scalar_nonneg_of_gronwall` requires `0 ≤ K`, `ContinuousOn u (Icc 0 T)`, derivative bound, `0 ≤ u 0`, and `∀ t, u t ≤ 0 → −K * u t ≤ u' t` — a one-sided Gronwall condition
-
 **Strategy**: `Metric.isBounded_iff`, `closedBall`, `IsPicardLindelof`.
 
 #### `MeanField/Stability.lean`
 
-Lyapunov stability theory for the mean-field ODE. A Lyapunov function certifies stability; a strict Lyapunov function certifies asymptotic stability. The linearized pathway goes through the Hurwitz spectral condition (all Jacobian eigenvalues have negative real part).
+Lyapunov stability theory for the mean-field ODE. The linearized pathway goes through the Hurwitz spectral condition.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -442,18 +475,11 @@ Lyapunov stability theory for the mean-field ODE. A Lyapunov function certifies 
 | theorem | `hurwitz_implies_lyapunov_exists` | Hurwitz spectrum → Lyapunov exists |
 | theorem | `linear_stable_implies_asymptotic` | Main linearized stability result |
 
-**Typeclass context:** `[Fintype Q] [DecidableEq Q]`
-
-**Key theorem hypotheses:**
-- `lyapunov_implies_stable` requires `[Nonempty Q]`, `IsEquilibrium C x`, conservation and boundary on the extended drift, and a `LyapunovData C.drift x`
-- `strict_lyapunov_implies_asymptotic` same plus `StrictLyapunovData`
-- `linear_stable_implies_asymptotic` requires `IsLinearlyStable C.drift x` (fixed point + Hurwitz), `x ∈ Simplex Q`, conservation, boundary, `DifferentiableAt ℝ C.drift x`, and a `StrictLyapunovData` — the Lyapunov function is assumed, not constructed
-
 **Strategy**: compactness of sphere, continuity, spectral condition.
 
 #### `MeanField/Projection.lean`
 
-Addresses the inverse problem: given a target drift function, find nonneg rate functions for a fixed set of stoichiometric templates that reproduce it. This is the "projection" from a global population-level specification to a concrete set of interaction rules.
+Addresses the inverse problem: given a target drift, find nonneg rate functions for stoichiometric templates that reproduce it.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -462,29 +488,17 @@ Addresses the inverse problem: given a target drift function, find nonneg rate f
 | theorem | `projection_correct` | Solution reproduces target |
 | theorem | `projection_exists` | Existence under conic decomposition |
 
-**Assumptions on `ProjectionProblem Q`:**
-- `templates_conserve : ∀ tmpl ∈ ruleTemplates, ∑ q, tmpl q = 0` — each stoichiometric template conserves total count
-
-**Assumptions on `ProjectionSolution Q P`:**
-- `rates_nonneg : ∀ i, (rates i).NonNeg` — rates are nonneg on simplex
-- `produces_drift : ∀ x ∈ Simplex Q, ∀ q, ∑ i, (P.template i q : ℝ) * rates i x = P.targetDrift x q` — rates reproduce target drift exactly
-
-**Key theorem hypotheses:**
-- `projection_exists` requires `[DecidableEq Q]` and `∀ x ∈ Simplex Q, ∃ coeffs, (∀ i, 0 ≤ coeffs i) ∧ ∀ q, targetDrift x q = ∑ i, coeffs i * template i q` — the target drift admits a conic decomposition in the templates at every simplex point
-
 #### `MeanField/Examples/Ising/`
 
-Four files implementing the mean-field Ising model. `TanhAnalysis.lean` analyzes the self-consistency equation m = tanh(βm). `Drift.lean` defines the Ising drift and proves conservation. `Glauber.lean` builds Glauber spin-flip dynamics from binary rules. `PhaseTransition.lean` characterizes the phase transition at β = 1 (order–disorder boundary).
+Four files implementing the mean-field Ising model. `TanhAnalysis.lean` analyzes m = tanh(βm). `Drift.lean` defines drift and proves conservation. `Glauber.lean` builds Glauber spin-flip dynamics. `PhaseTransition.lean` characterizes the phase transition at β = 1.
 
 ---
 
 ### ContinuumField Layer
 
-The continuum field layer lifts the discrete mean-field framework to spatially extended systems. Instead of counting agents in states, it tracks density, polarization, and spin fields over continuous space, with interactions mediated by nonlocal integral kernels. The key structural result is that global and local views of the kernel operator are definitionally equal.
+The continuum field layer lifts the discrete mean-field framework to spatially extended systems. Interactions are mediated by nonlocal integral kernels. The key structural result is that global and local views of the kernel operator are definitionally equal.
 
 #### `ContinuumField/Basic.lean`
-
-Defines the basic field types: a field is a function from space to values, and a field state bundles density ρ, polarization p, and optional spin ω.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -493,25 +507,19 @@ Defines the basic field types: a field is a function from space to values, and a
 
 #### `ContinuumField/Kernel.lean`
 
-Defines the global interaction kernel with its regularity and normalization conditions. A kernel assigns a nonneg, unit-mass, integrable weight K(x,x') to each pair of spatial points. The local kernel K_x(ξ) = K(x, x+ξ) is the displacement view from a single point.
+Defines the global interaction kernel with regularity and normalization conditions.
 
 | Kind | Name | Notes |
 |------|------|-------|
 | def | `KernelField X` | X → ℝ |
 | structure | `GlobalKernel X` | K with measurability, nonnegativity, mass normalization |
-| def | `GlobalKernel.localKernel` | Projects K(x,x') → K_x(ξ) = K(x, x+ξ) |
+| def | `GlobalKernel.localKernel` | K(x,x') → K_x(ξ) = K(x, x+ξ) |
 | structure | `KernelRule` | Deterministic kernel update from field state |
 
 **Assumptions on `GlobalKernel X`:**
-- `[MeasureSpace X]` — X carries a measure
-- `measurable_K : Measurable (fun p : X × X => K p.1 p.2)` — K is jointly measurable
-- `nonneg : ∀ x x', 0 ≤ K x x'` — pointwise nonneg
-- `mass_one : ∀ x, ∫ x', K x x' = 1` — normalized (each row is a probability density)
-- `integrable_K : ∀ x, Integrable (fun x' => K x x')` — each row is integrable
+- `measurable_K`, `nonneg`, `mass_one`, `integrable_K`
 
 #### `ContinuumField/Projection.lean`
-
-Proves that the global nonlocal operator (integrating over absolute positions x') and the local operator (integrating over displacements ξ) are definitionally equal. This is the exactness lemma: no information is lost when switching between global and local kernel views.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -519,13 +527,9 @@ Proves that the global nonlocal operator (integrating over absolute positions x'
 | def | `nonlocalLocal` | ∫ K_x(ξ) (p(x+ξ)−p(x)) dξ |
 | theorem | `nonlocal_exact` | Global = local operator. **Proof: `rfl`** |
 
-**Typeclass context:** `[MeasureSpace X] [Add X]`, `[NormedAddCommGroup V] [NormedSpace ℝ V]`
-
-**Key result**: the two integral forms are definitionally equal by construction — no hypotheses beyond the types.
-
 #### `ContinuumField/EffectsIntegration.lean`
 
-Connects the continuum kernel to the effects/session-type framework. Each role is assigned a spatial location; the global kernel projects to a local kernel field per role. Coherence means each role's local kernel equals the projection of the global kernel at that role's location. Soundness follows: coherent locals reproduce the global operator.
+Connects the continuum kernel to the effects/session-type framework. Each role is assigned a spatial location; coherent locals reproduce the global operator.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -533,87 +537,56 @@ Connects the continuum kernel to the effects/session-type framework. Each role i
 | def | `KernelCoherent` | Local kernels = projection of global |
 | theorem | `projection_sound` | Coherent locals reproduce global operator |
 
-**Key hypothesis:**
-- `projection_sound` requires `KernelCoherent loc K env` — `∀ r, env.kernelAt r = GlobalKernel.localKernel K (loc r)` — each role's local kernel is exactly the projection of the global kernel at that role's location
-
 #### `ContinuumField/Closure.lean`
-
-Defines optional coarse-grained summaries of kernels (range, anisotropy, mass) and a closure specification that guarantees the summary reconstructs the kernel to within a pointwise error bound.
 
 | Kind | Name | Notes |
 |------|------|-------|
 | structure | `KernelSummary` | Range, anisotropy, mass |
 | structure | `ClosureSpec` | close/reconstruct with approximation bound |
 
-**Assumptions on `ClosureSpec X`:**
-- `sound : ∀ K, KernelApprox K (reconstruct (close K)) bound` — reconstruction approximates the original kernel pointwise within `bound`
-
-Where `KernelApprox K₁ K₂ ε` means `∀ ξ, |K₁ ξ − K₂ ξ| ≤ ε`.
-
 #### `ContinuumField/Adaptivity.lean`
 
-Specifies how the interaction kernel depends on and co-evolves with the field state. The key regularity condition is Lipschitz dependence: small changes in the field state produce small changes in the kernel.
+Specifies Lipschitz dependence of the kernel on the field state.
 
 | Kind | Name | Notes |
 |------|------|-------|
 | structure | `KernelDependence` | Kernel as Lipschitz function of field state |
 | structure | `KernelDynamics` | Drift for kernel evolution |
 
-**Assumptions on `StateMetric X V W`:**
-- `dist_nonneg : ∀ s₁ s₂, 0 ≤ dist s₁ s₂` — metric is nonneg
-
-**Assumptions on `KernelDependence X V W`:**
-- `lipschitz : ∃ L ≥ 0, ∀ s₁ s₂ x x', |(kernelOf s₁).K x x' − (kernelOf s₂).K x x'| ≤ L * metric.dist s₁ s₂` — kernel varies Lipschitz-continuously with the field state
-
 #### `ContinuumField/TimeBridge.lean`
 
-Bridges continuous time (field evolution) and discrete steps (protocol/effects). Defines a sampling schedule mapping step indices to real times, and proves that constructed samplers are clock-independent: they never consult a remote party's local clock, only their own step counter or a pre-agreed global schedule.
+Bridges continuous time and discrete steps. Proves constructed samplers are clock-independent.
 
 | Kind | Name | Notes |
 |------|------|-------|
 | structure | `SamplingSchedule` | sampleTime : ℕ → ℝ |
 | def | `ClockIndependent` | Sampler ignores remote clock |
-| theorem | `mkSampler_clockIndependent` | Constructed samplers are clock-independent. `rfl` |
-| structure | `SpatialBridge` | Role locations + topology constraints + soundness |
+| theorem | `mkSampler_clockIndependent` | `rfl` |
+| structure | `SpatialBridge` | Role locations + topology + soundness |
 | theorem | `satisfies_colocated`, `satisfies_within` | Unpack bridge soundness |
-
-**Key definitions:**
-- `ClockIndependent s` — `∀ k t₁ t₂, s.sample k t₁ = s.sample k t₂` — output depends only on step index, not on the remote time argument
-- `Colocated loc r₁ r₂` — `loc r₁ = loc r₂` — two roles share the same spatial location
-- `Within loc r₁ r₂ d` — `dist (loc r₁) (loc r₂) ≤ d` — roles are within distance d
-
-**Assumptions on `SpatialBridge X Topology SpatialReq`:**
-- `[PseudoMetricSpace X]` — space has a metric
-- `colocated_sound` — topology satisfaction implies actual colocation
-- `within_sound` — topology satisfaction implies actual distance bound
-
-#### `ContinuumField/SpatialMirror.lean`
-
-A self-contained mirror of the Effects system's spatial types (sites, spatial requirements, topology, satisfaction). This avoids a direct dependency on the Effects library while maintaining structural compatibility.
-
-Defines `Site := String`, `RoleName := Role`, `SpatialReq` (inductive with `netCapable`, `timeoutCapable`, `colocated`, `reliableEdge`, `conj`, `top`, `bot`), `Topology`, and `Satisfies`.
 
 #### `ContinuumField/SpatialBridge.lean`
 
-Adapter from the Effects spatial mirror to the continuum SpatialBridge. Requires role locations to be aligned with the topology's site assignment (roles assigned to the same site are actually at the same spatial point).
+Adapter from the Effects spatial mirror to the continuum SpatialBridge.
 
 | Kind | Name | Notes |
 |------|------|-------|
 | def | `AlignedRoleLoc` | Role locations respect site assignment |
 | def | `effectsSpatialBridge` | Constructs SpatialBridge from Effects types |
 
-**Key assumption:**
-- `AlignedRoleLoc` — `∀ r₁ r₂, topo.assign r₁ = topo.assign r₂ → loc r₁ = loc r₂` — roles assigned to the same site share the same spatial location
+#### `ContinuumField/SpatialMirror.lean`
+
+Self-contained mirror of the Effects system's spatial types (`Site`, `RoleName`, `SpatialReq`, `Topology`, `Satisfies`). Includes helpers: `isTop`, `isBot`, `atoms`, `fromList`, `satisfiesBool`, `satisfiesBool_iff_Satisfies`.
 
 #### `ContinuumField/Examples/Anisotropic2D.lean`
 
-A concrete 2D example with an anisotropic kernel that weights influence by direction (models a vision cone). Demonstrates projection exactness and closure soundness by specialization of the general theorems.
+2D anisotropic kernel with direction weighting (vision cone). Demonstrates projection exactness and closure soundness.
 
 | Kind | Name | Notes |
 |------|------|-------|
-| def | `anisotropicLocal` | 2D anisotropic kernel with direction weighting |
-| theorem | `example_exact` | Projection exactness. `simpa using nonlocal_exact` |
-| theorem | `example_closure_bound` | Closure soundness. `simpa using C.sound` |
+| def | `anisotropicLocal` | 2D anisotropic kernel |
+| theorem | `example_exact` | `simpa using nonlocal_exact` |
+| theorem | `example_closure_bound` | `simpa using C.sound` |
 
 ---
 
@@ -625,7 +598,7 @@ A concrete 2D example with an anisotropic kernel that weights influence by direc
 | `simp` | Everywhere | Unfolding definitions, arithmetic simplification |
 | `linarith` / `nlinarith` | ConvexHamiltonian, DampedFlow, NoseHoover, Stability | Inequalities from convexity, energy bounds, thermodynamics |
 | `positivity` | ConvexHamiltonian, ThermostatOscillator | Nonnegativity of energy, norms |
-| `ring` | Legendre, Langevin, Basic | Algebraic identities |
+| `ring` | Legendre, Langevin, Basic, SymplecticFlow | Algebraic identities |
 | Lipschitz composition | DampedFlow, LipschitzBridge | Drift regularity for ODE existence |
 | `ext_inner_right` + `fderiv_norm_sq_apply` | ConvexHamiltonian, Legendre | Gradient of ½‖·‖² |
 | `ciSup_le` / `le_ciSup` | FenchelMoreau | Fenchel–Young, biconjugate bounds |
@@ -636,3 +609,7 @@ A concrete 2D example with an anisotropic kernel that weights influence by direc
 | `antitone_of_hasDerivAt_nonpos` | DampedFlow | Energy monotone decrease |
 | Calculus on `lineMap` | Legendre | Bregman nonnegativity via convexity of restrictions to lines |
 | Spectral / Hurwitz condition | Stability | Linearized asymptotic stability |
+| Young's inequality + strong convexity | HeavyBallConvergence | Lyapunov derivative bounds, exponential decay |
+| Gaussian integral decomposition | GaussianIntegrals | Product-measure Gaussian identities over Config |
+| Compactness + coercivity | GradientDescentMinimizer | Minimizer existence for strongly convex functions |
+| FP substitution + fluctuation-dissipation | LangevinFokkerPlanck | Gibbs stationarity under σ² = 2γkT |
