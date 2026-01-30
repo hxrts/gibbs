@@ -104,9 +104,8 @@ theorem langevin_noseHoover_same_equilibrium (H : ConvexHamiltonian n) (kT : ℝ
 noncomputable def langevinSDE (H : ConvexHamiltonian n) (d : Damping) (σ : ℝ) :
     Gibbs.Hamiltonian.Stochastic.SDE n := by
   -- Noise lives in the momentum component; the position noise is zero.
-  refine { drift := dampedDrift H d, noise := ?_ }
-  intro w
-  exact (0, (σ : ℝ) • w)
+  refine { drift := dampedDrift H d, diffusion := ?_ }
+  exact (σ : ℝ) • ContinuousLinearMap.inr ℝ (Config n) (Config n)
 
 /-- A concrete Langevin process from a chosen integration theory and Brownian path. -/
 noncomputable def langevinProcess {Ω : Type*} [MeasurableSpace Ω]

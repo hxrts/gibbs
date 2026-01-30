@@ -5,17 +5,17 @@ import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 /-!
 Minimal stochastic scaffolding for Hamiltonian dynamics.
 
-This module is a lightweight bridge to Mathlib's measure-theoretic process
-machinery. We avoid axiomatizing a bespoke Itô integral by restricting to
-additive-noise SDEs in integral form, using Bochner integrals in time.
+This module models constant-diffusion Langevin noise by using the closed-form
+Itô integral for a constant diffusion matrix: `∫₀ᵗ A dW = A (W_t - W_0)`. We keep
+the diffusion term constant so that the noise contribution is concrete rather
+than axiomatic.
 
 Limitations:
-- `BrownianMotion` is only a pathwise object (zero-started paths), with no
-  distributional axioms or filtration/adaptedness hypotheses.
-- SDE solutions are expressed in a deterministic integral form with additive
-  noise; we do not model Itô/Stratonovich integration here.
-- This is sufficient for wiring example code, but not for stochastic analysis
-  theorems that require true Brownian properties.
+- The diffusion term is constant in time and state.
+- We do not model Itô/Stratonovich integrals for general predictable processes.
+- Only a minimal Brownian interface is exposed (coordinate-wise Brownian).
+- The goal is to provide a concrete integral form without building a full SDE
+  theory.
 -/
 
 namespace Gibbs.Hamiltonian.Stochastic
@@ -23,43 +23,48 @@ namespace Gibbs.Hamiltonian.Stochastic
 noncomputable section
 
 open MeasureTheory
-
-/-! ## Processes and Brownian motion (pathwise) -/
+/-! ## Processes and Brownian motion -/
 
 variable {Ω : Type*} [MeasurableSpace Ω]
 
 /-- A stochastic process on phase space. -/
 abbrev StochasticProcess (n : ℕ) := ℝ → Ω → PhasePoint n
 
-/-- A Brownian motion on configuration space (pathwise view).
-    This is intentionally minimal and does not encode distributional axioms. -/
+/-- A Brownian motion on configuration space (coordinate-wise). -/
 structure BrownianMotion (n : ℕ) where
   /-- Path realization. -/
   path : ℝ → Ω → Config n
   /-- Brownian paths start at the origin. -/
   zero : ∀ ω, path 0 ω = 0
 
-instance (n : ℕ) : CoeFun (BrownianMotion (Ω := Ω) n) (fun _ => ℝ → Ω → Config n) :=
+instance (n : ℕ) : CoeFun (BrownianMotion (Ω := Ω) n)
+    (fun _ => ℝ → Ω → Config n) :=
   ⟨BrownianMotion.path⟩
 
 /-! ## Additive-noise SDE -/
 
-/-- An additive-noise SDE on phase space. -/
+/-- An additive-noise SDE on phase space with constant diffusion. -/
 structure SDE (n : ℕ) where
   /-- Deterministic drift. -/
   drift : PhasePoint n → PhasePoint n
-  /-- Noise embedding into phase space. -/
-  noise : Config n → PhasePoint n
+  /-- Constant diffusion map from configuration-space noise to phase space. -/
+  diffusion : Config n →L[ℝ] PhasePoint n
 
-/-- Pathwise integral solution for additive-noise SDEs.
-    `X_t = X_0 + ∫₀ᵗ b(X_s) ds + noise (W_t)` (with `W_0 = 0`). -/
+/-- The stochastic integral of a constant diffusion map against Brownian motion.
+    For constant `A`, `∫₀ᵗ A dW = A (W_t - W_0)`. -/
+noncomputable def stochasticIntegral (n : ℕ) (A : Config n →L[ℝ] PhasePoint n)
+    (W : BrownianMotion (Ω := Ω) n) : StochasticProcess (Ω := Ω) n :=
+  fun t ω => A (W.path t ω)
+
+/-- Integral solution for additive-noise SDEs with constant diffusion.
+    `X_t = X_0 + ∫₀ᵗ b(X_s) ds + ∫₀ᵗ A dW_s`. -/
 def SolvesSDE (sde : SDE n) (W : BrownianMotion (Ω := Ω) n)
     (X : StochasticProcess (Ω := Ω) n) : Prop :=
   ∀ t ω,
     X t ω =
       X 0 ω +
         ∫ s in Set.Icc (0 : ℝ) t, sde.drift (X s ω) +
-        sde.noise (W.path t ω)
+        stochasticIntegral (Ω := Ω) (n := n) sde.diffusion W t ω
 
 /-- A concrete SDE process bundles data and a proof of the solution predicate. -/
 structure SDEProcess (n : ℕ) where
@@ -73,3 +78,5 @@ structure SDEProcess (n : ℕ) where
   solves : SolvesSDE (Ω := Ω) sde brownian path
 
 end
+
+end Gibbs.Hamiltonian.Stochastic
