@@ -4,15 +4,16 @@ import Gibbs.Core
 The Problem. We need a lightweight mirror of the Effects spatial model so the
 continuum-field layer can compile without pulling the full Effects dependency.
 This module mirrors the key types and predicates we rely on: SpatialReq,
-Topology, and Satisfies.
+Topology, and Satisfies. It is kept in sync with `Effects.Spatial` so the
+continuum-field layer can be compiled without importing Effects directly.
 
 The difficulty is staying aligned with Effects while keeping scope minimal.
 We therefore copy only the definitions needed by EffectsBridge.
 
 Solution Structure.
-1. SpatialReq language (colocation + reliability + capability stubs)
+1. SpatialReq language (colocation + reliability + capability)
 2. Topology with role-to-site assignment
-3. Satisfies judgment
+3. Satisfies judgment + boolean checker
 -/
 
 namespace Gibbs.ContinuumField
@@ -43,6 +44,28 @@ namespace SpatialReq
 /-- Conjunction notation for spatial requirements. -/
 instance : HAnd SpatialReq SpatialReq SpatialReq where
   hAnd := conj
+
+/-- Check if a requirement is trivially satisfied. -/
+def isTop : SpatialReq → Bool
+  | top => true
+  | _ => false
+
+/-- Check if a requirement is trivially unsatisfiable. -/
+def isBot : SpatialReq → Bool
+  | bot => true
+  | _ => false
+
+/-- Flatten nested conjunctions into a list of atomic requirements. -/
+partial def atoms : SpatialReq → List SpatialReq
+  | conj r₁ r₂ => atoms r₁ ++ atoms r₂
+  | top => []
+  | r => [r]
+
+/-- Build a conjunction from a list of requirements. -/
+def fromList : List SpatialReq → SpatialReq
+  | [] => top
+  | [r] => r
+  | r :: rs => conj r (fromList rs)
 
 end SpatialReq
 
@@ -110,5 +133,37 @@ def Satisfies (topo : Topology) : SpatialReq → Prop
   | .conj r₁ r₂ => Satisfies topo r₁ ∧ Satisfies topo r₂
   | .top => True
   | .bot => False
+
+/-! ## Boolean Satisfaction (Mirror) -/
+
+/-- Boolean satisfaction predicate mirroring Effects. -/
+def satisfiesBool (topo : Topology) : SpatialReq → Bool
+  | .netCapable s => topo.siteHasNetwork s
+  | .timeoutCapable s => topo.siteHasTimeout s
+  | .colocated r₁ r₂ => topo.rolesColocated r₁ r₂
+  | .reliableEdge r₁ r₂ => topo.hasEdge (topo.siteOf r₁) (topo.siteOf r₂)
+  | .conj r₁ r₂ => satisfiesBool topo r₁ && satisfiesBool topo r₂
+  | .top => true
+  | .bot => false
+
+/-- Boolean satisfaction is equivalent to propositional satisfaction. -/
+theorem satisfiesBool_iff_Satisfies (topo : Topology) (req : SpatialReq) :
+    satisfiesBool topo req = true ↔ Satisfies topo req := by
+  induction req with
+  | netCapable s => simp [satisfiesBool, Satisfies]
+  | timeoutCapable s => simp [satisfiesBool, Satisfies]
+  | colocated r₁ r₂ =>
+      simp only [satisfiesBool, Satisfies, Topology.rolesColocated]
+      constructor
+      · intro h; exact beq_iff_eq.mp h
+      · intro h; exact beq_iff_eq.mpr h
+  | reliableEdge r₁ r₂ => simp [satisfiesBool, Satisfies]
+  | conj r₁ r₂ ih₁ ih₂ =>
+      simp only [satisfiesBool, Satisfies, Bool.and_eq_true]
+      constructor
+      · intro ⟨h₁, h₂⟩; exact ⟨ih₁.mp h₁, ih₂.mp h₂⟩
+      · intro ⟨h₁, h₂⟩; exact ⟨ih₁.mpr h₁, ih₂.mpr h₂⟩
+  | top => simp [satisfiesBool, Satisfies]
+  | bot => simp [satisfiesBool, Satisfies]
 
 end Gibbs.ContinuumField
