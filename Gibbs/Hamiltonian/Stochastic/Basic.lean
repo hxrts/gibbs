@@ -8,6 +8,14 @@ Minimal stochastic scaffolding for Hamiltonian dynamics.
 This module is a lightweight bridge to Mathlib's measure-theoretic process
 machinery. We avoid axiomatizing a bespoke Itô integral by restricting to
 additive-noise SDEs in integral form, using Bochner integrals in time.
+
+Limitations:
+- `BrownianMotion` is only a pathwise object (zero-started paths), with no
+  distributional axioms or filtration/adaptedness hypotheses.
+- SDE solutions are expressed in a deterministic integral form with additive
+  noise; we do not model Itô/Stratonovich integration here.
+- This is sufficient for wiring example code, but not for stochastic analysis
+  theorems that require true Brownian properties.
 -/
 
 namespace Gibbs.Hamiltonian.Stochastic
@@ -23,7 +31,8 @@ variable {Ω : Type*} [MeasurableSpace Ω]
 /-- A stochastic process on phase space. -/
 abbrev StochasticProcess (n : ℕ) := ℝ → Ω → PhasePoint n
 
-/-- A Brownian motion on configuration space (pathwise view). -/
+/-- A Brownian motion on configuration space (pathwise view).
+    This is intentionally minimal and does not encode distributional axioms. -/
 structure BrownianMotion (n : ℕ) where
   /-- Path realization. -/
   path : ℝ → Ω → Config n
