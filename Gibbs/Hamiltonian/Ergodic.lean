@@ -349,6 +349,27 @@ theorem timeAverage_const (c : ℝ) (traj : StochasticProcess n) {T : ℝ} (hT :
           -- Cancel the normalization factor.
           simpa [one_div] using (inv_mul_cancel_left₀ (a := T) (b := c) hTne)
 
+/-! ## Constant Trajectory -/
+
+/-- Time average along a constant trajectory. -/
+theorem timeAverage_const_traj (f : Config n → ℝ) (q₀ : Config n) {T : ℝ} (hT : 0 < T) :
+    timeAverage f (fun _ => q₀) T = f q₀ := by
+  have hconst : ∫ _ in Set.Icc (0 : ℝ) T, f q₀ =
+      (MeasureTheory.volume (Set.Icc (0 : ℝ) T)).toReal * f q₀ := by
+    simpa using integral_const_Icc (c := f q₀) T
+  have hvol : (MeasureTheory.volume (Set.Icc (0 : ℝ) T)).toReal = T :=
+    volume_Icc_toReal (T := T) (le_of_lt hT)
+  have hTne : T ≠ 0 := by
+    exact ne_of_gt hT
+  calc
+    timeAverage f (fun _ => q₀) T
+        = (1 / T) * ((MeasureTheory.volume (Set.Icc (0 : ℝ) T)).toReal * f q₀) := by
+          simp [timeAverage, hconst]
+    _ = (1 / T) * (T * f q₀) := by
+          rw [hvol]
+    _ = f q₀ := by
+          simpa [one_div] using (inv_mul_cancel_left₀ (a := T) (b := f q₀) hTne)
+
 /-- Ensemble average of a constant scales by the total mass of the density. -/
 theorem ensembleAverage_const (c : ℝ) (V : Config n → ℝ) (kT : ℝ)
     (μ : MeasureTheory.Measure (Config n)) :
@@ -399,6 +420,36 @@ def IsErgodic (V : Config n → ℝ) (kT : ℝ) (μ : MeasureTheory.Measure (Con
     ∀ q₀,
       Filter.Tendsto (fun T => timeAverage f (processFamily q₀) T)
         Filter.atTop (nhds (ensembleAverage f V kT μ))
+
+/-! ## Toy Ergodicity: Constant Trajectory -/
+
+/-- A constant trajectory is ergodic if it matches the ensemble average at its base point. -/
+theorem ergodic_of_constant_process (V : Config n → ℝ) (kT : ℝ)
+    (μ : MeasureTheory.Measure (Config n)) (q₀ : Config n)
+    (hmatch : ∀ f, Continuous f → MeasureTheory.Integrable f μ →
+      f q₀ = ensembleAverage f V kT μ) :
+    IsErgodic V kT μ (fun _ => fun _ => q₀) := by
+  intro f hf hInt _q
+  have hconst0 :
+      (fun T => timeAverage f (fun _ => q₀) T) =ᶠ[Filter.atTop] fun _ => f q₀ := by
+    refine (Filter.eventually_atTop.2 ?_)
+    refine ⟨(1 : ℝ), ?_⟩
+    intro T hT
+    have hT' : 0 < T := by linarith
+    simp [timeAverage_const_traj (f := f) (q₀ := q₀) hT']
+  have hconst :
+      (fun T => timeAverage f ((fun _ => fun _ => q₀) _q) T) =ᶠ[Filter.atTop] fun _ => f q₀ := by
+    simpa using hconst0
+  have htendsto :
+      Filter.Tendsto (fun _ : ℝ => f q₀) Filter.atTop
+        (nhds (ensembleAverage f V kT μ)) := by
+    have hconst' :
+        Filter.Tendsto (fun _ : ℝ => f q₀) Filter.atTop (nhds (f q₀)) :=
+      (tendsto_const_nhds : Filter.Tendsto (fun _ : ℝ => f q₀) Filter.atTop (nhds (f q₀)))
+    have hgoal : ensembleAverage f V kT μ = f q₀ := (hmatch f hf hInt).symm
+    rw [hgoal]
+    exact hconst'
+  exact (Filter.Tendsto.congr' hconst.symm htendsto)
 
 end
 
