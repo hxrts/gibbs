@@ -2,16 +2,16 @@ import Gibbs.Hamiltonian.Basic
 import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.DampedFlow
 
-/-
-The Problem. Express the heavy-ball (momentum) method as a damped Hamiltonian
-system by pairing a potential function with quadratic kinetic energy.
+/-!
+# Heavy-Ball Method as Damped Hamiltonian
 
-The difficulty is bookkeeping: we must package a convex, differentiable
-potential into a `ConvexHamiltonian` and then apply the damped drift.
+The heavy-ball (momentum) method for minimizing a convex objective V(q) is
+exactly the damped Hamiltonian system with H(q,p) = (1/2) norm(p)^2 + V(q).
+Momentum provides inertia that accelerates convergence past narrow valleys,
+while damping ensures eventual dissipation to the minimum.
 
-Solution Structure.
-1. Build a Hamiltonian with quadratic kinetic energy and user-supplied V.
-2. Define the heavy-ball drift as the damped Hamiltonian drift.
+This file packages a convex differentiable potential into a `ConvexHamiltonian`
+and defines the heavy-ball drift as the corresponding damped Hamiltonian drift.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

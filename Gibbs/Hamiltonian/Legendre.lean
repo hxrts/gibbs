@@ -8,26 +8,20 @@ import Mathlib.Analysis.InnerProductSpace.Dual
 import Mathlib.Tactic
 import Mathlib.Topology.MetricSpace.Basic
 
-/-
-The Problem. Legendre transforms and Bregman divergences are central
-to convex analysis and connect to Lyapunov functions for stability.
+/-!
+# Legendre Transform and Bregman Divergence
 
-For a convex function f, its Legendre transform f* is defined by:
-  f*(p) = sup_x { ⟨p, x⟩ - f(x) }
+The Legendre transform f*(p) = sup_x { <p, x> - f(x) } converts between
+conjugate descriptions of a convex function, exchanging slopes and intercepts.
+It is the convex-analytic backbone of thermodynamic duality (energy vs entropy,
+temperature vs inverse temperature).
 
-The Bregman divergence generalizes squared distance:
-  D_f(x, y) = f(x) - f(y) - ⟨∇f(y), x - y⟩
+The Bregman divergence D_f(x, y) = f(x) - f(y) - <nabla f(y), x - y> measures
+how far f deviates from its tangent approximation at y. For convex f it is
+nonneg, and for strictly convex f it vanishes only at x = y, making it a
+natural Lyapunov function for gradient and mirror-descent dynamics.
 
-Key properties:
-- Bregman divergence ≥ 0 for convex f (by definition of convexity)
-- Bregman divergence = 0 iff x = y for strictly convex f
-- f** = f for closed convex f (Fenchel-Moreau theorem, proved in FenchelMoreau.lean)
-
-Solution Structure.
-1. legendre: Legendre transform definition
-2. bregman: Bregman divergence definition
-3. bregman_nonneg: non-negativity from convexity
-4. bregman_eq_zero_iff: characterization for strict convexity
+The biconjugate identity f** = f (Fenchel-Moreau) is proved in FenchelMoreau.lean.
 5. Fenchel-Moreau is proved in `Gibbs/Hamiltonian/FenchelMoreau.lean`
 -/
 

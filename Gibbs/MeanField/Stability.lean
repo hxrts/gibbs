@@ -4,18 +4,14 @@ import Mathlib.Topology.MetricSpace.Bounded
 import Mathlib.Topology.Order.Compact
 import Mathlib.Topology.Order.IntermediateValue
 
-/-
-The Problem. Prove that linearized stability implies asymptotic stability
-for mean-field ODE systems. Specifically: if all eigenvalues of the
-Jacobian at a fixed point have negative real part (Hurwitz condition),
-then the fixed point is asymptotically stable.
+/-!
+# Linearized Stability for Mean-Field ODEs
 
-Solution Structure (Lyapunov approach).
-1. Spectral equivalence: IsHurwitz ↔ spectrum condition (provable)
-2. Lyapunov stability: LyapunovData → IsLyapunovStable (provable)
-3. Asymptotic stability: StrictLyapunovData → IsAsymptoticallyStable' (provable)
-4. Hurwitz → strict Lyapunov function exists (requires a Lyapunov equation hypothesis)
-5. Main theorem: linear stable → asymptotically stable (chains 4 → 3)
+If all eigenvalues of the Jacobian at a fixed point have negative real part
+(the Hurwitz condition), the fixed point is asymptotically stable. The proof
+follows the Lyapunov approach: the Hurwitz condition implies existence of a
+strict Lyapunov function (a positive-definite quadratic form that decreases
+along trajectories), which in turn implies asymptotic stability.
 -/
 
 namespace Gibbs.MeanField

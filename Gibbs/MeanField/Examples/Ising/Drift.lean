@@ -1,15 +1,14 @@
 import Gibbs.MeanField.Projection
 import Gibbs.MeanField.Examples.Ising.TanhAnalysis
 
-/-
-The Problem. Define the mean-field Ising drift function and prove it
-forms a valid choreography (conserves probability and is Lipschitz).
+/-!
+# Ising Drift and Choreography
 
-Solution Structure.
-1. IsingParams: model parameters (β, J, h, τ)
-2. isingDrift: the ODE right-hand side
-3. Conservation: dx_up + dx_down = 0
-4. Lipschitz: drift is Lipschitz via tanh being 1-Lipschitz
+The mean-field Ising drift describes the rate of change of the fraction of
+up-spins: dx/dt = (1/tau) * [tanh(beta(J m + h)) - m] where m = 2x - 1 is
+the magnetization. Conservation (dx_up + dx_down = 0) holds because spins
+only flip, never appear or disappear. The Lipschitz bound follows from tanh
+being 1-Lipschitz.
 -/
 
 namespace Gibbs.MeanField.Examples

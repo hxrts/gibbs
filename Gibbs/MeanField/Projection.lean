@@ -1,22 +1,14 @@
 import Gibbs.MeanField.Rules
 import Gibbs.MeanField.ODE
 
-/-
-The Problem. Given a target drift function F (the global choreography),
-find local transition rates that produce F when aggregated.
+/-!
+# Global-to-Local Projection
 
-This is the "projection" from global to local: we solve for rates r_i
-such that driftFromRules(rules with rates r_i) = F.
-
-The projection problem is: given stoichiometric templates (the "what"
-of transitions) and a target drift F, find rate functions (the "how fast")
-that make the rules produce F.
-
-Solution Structure.
-1. ProjectionProblem: target drift + rule templates
-2. ProjectionSolution: rates satisfying the drift equation
-3. Existence theorem (linear algebra conditions)
-4. Correctness theorem (solution produces target)
+Given a target drift F (the global choreography) and a set of stoichiometric
+rule templates (which states gain or lose agents in each transition type),
+the projection problem asks for rate functions that make the rules reproduce F.
+This inverts the direction of `driftFromRules`: instead of building a drift
+from rates, we find rates that produce a prescribed drift.
 -/
 
 namespace Gibbs.MeanField

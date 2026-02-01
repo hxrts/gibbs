@@ -8,24 +8,17 @@ import Mathlib.Analysis.InnerProductSpace.Calculus
 import Mathlib.Analysis.Normed.Module.Convex
 import Mathlib.Tactic
 
-/-
-The Problem. We need Hamiltonian structures where convexity ensures
-well-behaved dynamics. The key insight: for separable Hamiltonians
-H(q,p) = T(p) + V(q), convexity of T and V enables:
+/-!
+# Convex Hamiltonian Structure
 
-1. Existence and uniqueness of trajectories (Lipschitz drift)
-2. Energy as a Lyapunov function when damping is added
-3. Unique equilibria for strictly convex V
+A separable Hamiltonian H(q,p) = T(p) + V(q) with convex kinetic and potential
+energy. Convexity of T and V ensures well-behaved dynamics: Lipschitz drift
+fields, energy as a Lyapunov candidate under damping, and unique equilibria
+when V is strictly convex.
 
-This module defines the Hamiltonian structures and derives
-velocity (∇T) and force (-∇V) from gradients.
-
-Solution Structure.
-1. ConvexHamiltonian: separable H = T + V with convexity proofs
-2. StrictlyConvexHamiltonian: adds strict convexity of V
-3. Energy, velocity, force: derived quantities
-4. Quadratic constructors: T = ½‖p‖², V = ½‖q‖²
-5. HarmonicOscillator: canonical example
+This file defines `ConvexHamiltonian` and `StrictlyConvexHamiltonian`, derives
+velocity (nabla_p T) and force (-nabla_q V), and provides quadratic constructors
+for the standard harmonic oscillator.
 -/
 
 namespace Gibbs.Hamiltonian

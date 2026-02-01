@@ -1,14 +1,14 @@
 import Gibbs.MeanField.Examples.Ising.Drift
 
-/-
-The Problem. Prove the phase transition in the mean-field Ising model:
-paramagnetic phase (βJ < 1) has unique equilibrium m=0, while
-ferromagnetic phase (βJ > 1) has two nonzero equilibria ±m*.
+/-!
+# Ising Phase Transition
 
-Solution Structure.
-1. Self-consistency equation: m = tanh(βJm)
-2. Paramagnetic: |tanh(βJm)| < |βJm| ≤ |m| forces m = 0
-3. Ferromagnetic: IVT on f(m) = m - tanh(βJm) with f'(0) < 0
+The mean-field Ising model exhibits a phase transition at beta J = 1.
+In the paramagnetic phase (beta J < 1), the self-consistency equation
+m = tanh(beta J m) has only the trivial solution m = 0, because tanh is
+strictly sublinear. In the ferromagnetic phase (beta J > 1), the derivative
+at zero exceeds one, and the intermediate value theorem yields two additional
+solutions at nonzero magnetization plus or minus m*.
 -/
 
 namespace Gibbs.MeanField.Examples

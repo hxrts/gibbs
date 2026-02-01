@@ -5,14 +5,17 @@ import Mathlib.Data.Real.Basic
 import Mathlib.Data.Finset.Image
 import Mathlib.Tactic
 
-/-
-The Problem. We need a finite-state partition function and free energy
-that are application-agnostic and can be specialized later (e.g. to consensus).
+/-!
+# Finite-State Partition Function
 
-Solution Structure.
-1. Define a finite-state partition function using a plain sum.
-2. Define free energy from the partition function.
-3. Record basic nonnegativity for later use.
+The partition function Z(beta) = sum_x exp(-beta H(x)) is the central object
+of equilibrium statistical mechanics. It encodes the Boltzmann weights of all
+microstates and normalizes the Gibbs distribution. Free energy F = -(1/beta) log Z
+extracts the thermodynamically relevant information.
+
+This file defines Z and F for a finite state space, proves nonnegativity of Z,
+and establishes bounds relating free energy to the minimum energy and the
+logarithm of the state count.
 -/
 
 namespace Gibbs.Hamiltonian.PartitionFunction

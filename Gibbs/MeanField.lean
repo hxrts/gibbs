@@ -10,16 +10,12 @@ import Gibbs.MeanField.OrderParameter
 import Gibbs.MeanField.Universality
 import Gibbs.MeanField.Examples.Ising
 
-/-
-The Problem. Provide a single entry point for the mean-field layer so
-clients can import simplex, drift, ODE, stability, and projection
-without enumerating individual files.
+/-!
+# Mean-Field Layer
 
-The difficulty is keeping the interface lightweight while preserving the
-structured file layout. This file serves as a curated facade.
-
-Solution Structure.
-1. Re-export core mean-field modules
+Single entry point for the mean-field layer. Importing this file brings in
+simplex and population types, transition rules, choreography constraints,
+the Lipschitz bridge to Mathlib ODE infrastructure, existence and stability
+theorems, global-to-local projection, order parameters, universality classes,
+and the Ising model example.
 -/
-
-/-! # Mean Field Layer -/

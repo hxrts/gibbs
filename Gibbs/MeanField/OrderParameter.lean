@@ -1,14 +1,15 @@
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Real.Basic
 
-/-
-The Problem. We need a lightweight, application-agnostic order-parameter
-interface for finite systems so consensus can later reuse it.
+/-!
+# Order Parameters
 
-Solution Structure.
-1. Define the mean value of a finite family of reals.
-2. Define magnetization from a per-site observable.
-3. Package order parameters as functions on states.
+An order parameter is a coarse-grained observable that distinguishes
+macroscopic phases. The simplest example is the magnetization of a spin
+system: the average value of a per-site observable. This file defines the
+mean of a finite family, the magnetization induced by a per-site function,
+and a general `OrderParameter` wrapper for use in both physics and consensus
+applications.
 -/
 
 namespace Gibbs.MeanField

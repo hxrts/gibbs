@@ -6,22 +6,17 @@ import Mathlib.Analysis.Calculus.FDeriv.Basic
 import Mathlib.LinearAlgebra.Matrix.ToLin
 import Mathlib.LinearAlgebra.Eigenspace.Basic
 
-/-
-The Problem. Connect mean-field choreographies to ODE solutions.
-Given a drift function F : Simplex Q → (Q → ℝ) that is Lipschitz and
-conserves probability, we need ODE existence, uniqueness, and simplex
-invariance for dx/dt = F(x).
+/-!
+# Mean-Field ODE
 
-The difficulty is that Mathlib's ODE infrastructure (Picard-Lindelöf,
-Gronwall) requires globally Lipschitz functions on normed spaces,
-while our drift is defined only on the simplex. The Lipschitz bridge
-(LipschitzBridge.lean) extends drift to the whole space.
+The mean-field limit reduces stochastic population dynamics to the
+deterministic ODE dx/dt = F(x) on the simplex. This file defines what it means
+to solve this ODE, proves uniqueness via the Gronwall inequality, establishes
+simplex invariance from the conservation property, and defines fixed points
+and stability predicates.
 
-Solution Structure.
-1. IsSolution: what it means to solve dx/dt = F(x) with x(0) = x₀
-2. Uniqueness: Gronwall inequality via ODE_solution_unique
-3. Simplex invariance: conservation + boundary condition
-4. Fixed points and stability definitions
+The Lipschitz extension from simplex to ambient space (needed by Mathlib's
+Picard-Lindelof) is handled in LipschitzBridge.lean.
 -/
 
 namespace Gibbs.MeanField

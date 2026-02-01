@@ -1,17 +1,16 @@
 import Mathlib
 
-/-
-The Problem. Provide a concrete lattice Maxwell example with nontrivial curl stencils
-and a domain-decomposition interface that can be refined later.
+/-!
+# Yee Lattice Maxwell Equations
 
-The key insight is to model E and B on edges/faces (Yee lattice) so discrete curls
-use only local stencils, which then drives the ghost-layer/domain decomposition design.
+Maxwell's equations on a staggered (Yee) lattice place E on edges and B on
+faces so that the discrete curl operators use only nearest-neighbor stencils.
+This locality is what makes domain decomposition natural: each subdomain
+needs only a single ghost layer to compute its curls.
 
-Solution Structure.
-1. Lattice geometry: points, directions, edges, faces.
-2. Discrete curls with explicit stencils.
-3. Quadratic energy + Ohmic damping.
-4. Domain decomposition helpers and a coherence lemma for perfect ghost data.
+This file defines the 3D lattice geometry, discrete curl stencils, the
+quadratic electromagnetic energy with Ohmic damping, and domain-decomposition
+helpers with a coherence lemma for perfect ghost-layer data.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

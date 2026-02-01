@@ -1,13 +1,13 @@
 import Mathlib.Data.ENNReal.Basic
 
-/-
-The Problem. We need an application-agnostic notion of distance that can
-represent energy barriers and corruption budgets without committing to a
-specific model.
+/-!
+# Energy-Barrier Distance
 
-Solution Structure.
-1. Define a lightweight pseudometric valued in `ℝ≥0∞`.
-2. Provide a basic ball construction for later specializations.
+A pseudometric valued in extended nonneg reals, intended to capture the notion
+of an energy barrier between states. In statistical mechanics, transition rates
+between configurations scale as exp(-beta * barrier), so a large distance means
+an exponentially suppressed transition. The same structure models corruption
+budgets in coding theory and adversary balls in consensus.
 -/
 
 namespace Gibbs.Hamiltonian

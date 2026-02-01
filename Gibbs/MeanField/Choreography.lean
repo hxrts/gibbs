@@ -1,21 +1,17 @@
 import Gibbs.MeanField.Basic
 import Mathlib.Analysis.Calculus.Deriv.Basic
 
-/-
-The Problem. We need to specify global choreographic constraints for
-mean-field systems. A choreography specifies:
-- A drift function F : Simplex Q → (Q → ℝ) governing population dynamics
-- Conservation: drift preserves probability (sums to zero)
-- Regularity: drift is Lipschitz (required for ODE well-posedness)
+/-!
+# Mean-Field Choreography
 
-These constraints ensure the ODE dx/dt = F(x) has unique solutions
-that remain in the simplex.
+A mean-field choreography specifies the global constraints on population
+dynamics: a drift function F on the simplex that is probability-conserving
+(components sum to zero) and Lipschitz (ensuring ODE well-posedness). These
+two conditions guarantee that dx/dt = F(x) has a unique solution that remains
+on the simplex for all time.
 
-Solution Structure.
-1. RateFunction: state-dependent transition rates
-2. MeanFieldChoreography: drift function with conservation/Lipschitz
-3. Equilibrium: fixed points where drift = 0
-4. Stability: linearized stability at equilibria
+This file defines rate functions, the `MeanFieldChoreography` bundle,
+equilibrium (fixed) points, and linearized stability conditions.
 -/
 
 namespace Gibbs.MeanField

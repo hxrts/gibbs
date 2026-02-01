@@ -8,17 +8,16 @@ import Mathlib.MeasureTheory.Measure.Real
 import Mathlib.MeasureTheory.Measure.WithDensity
 import Gibbs.Hamiltonian.GaussianIntegrals
 
-/-
-The Problem. We need a lightweight vocabulary for Gibbs measures
-and ergodic time averages on configuration space. These definitions
-should compile without additional assumptions so later proofs can
-focus on dynamics rather than measure-theory boilerplate.
+/-!
+# Gibbs Measures and Ergodic Averages
 
-Solution Structure.
-1. Fix a measurable structure on configuration space via the Borel σ-algebra.
-2. Define partition functions, Gibbs densities, and Gibbs measures
-   relative to a reference measure.
-3. Define time/ensemble averages and a compact ergodicity statement.
+In statistical mechanics, the Gibbs measure mu_beta(dx) ~ exp(-beta H(x)) dx
+describes thermal equilibrium at inverse temperature beta. Ergodicity connects
+time averages of a single trajectory to ensemble averages over this measure.
+
+This file sets up the measurable structure on configuration space, defines the
+partition function and Gibbs density relative to a reference measure, and
+provides the vocabulary for time averages and the ergodic hypothesis.
 -/
 
 namespace Gibbs.Hamiltonian

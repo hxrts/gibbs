@@ -1,21 +1,18 @@
 import Gibbs.MeanField.Choreography
 
-/-
-The Problem. We need to connect microscopic transition rules to
-macroscopic drift functions. Each rule specifies:
-- A stoichiometric update (how counts change)
-- A rate function (how fast transitions happen)
+/-!
+# Population Transition Rules
 
-The drift function is derived by summing over all rules:
-  F(x)_q = Σ_r update_r(q) * rate_r(x)
+Microscopic dynamics are specified by transition rules, each with a
+stoichiometric update (which states gain or lose agents) and a rate function
+(how fast the transition fires, depending on the current distribution). The
+macroscopic drift is the sum over all rules: F(x)_q = sum_r update_r(q) *
+rate_r(x). This is the standard generator for density-dependent continuous-time
+Markov chains.
 
-This is the standard form for density-dependent CTMCs.
-
-Solution Structure.
-1. PopRule: single population transition rule
-2. BinaryRule: specialized rule for two-agent interactions
-3. driftFromRules: derive drift from a list of rules
-4. Conservation: prove drift from rules conserves probability
+This file defines `PopRule`, the specialized `BinaryRule` for pairwise
+interactions, derives `driftFromRules`, and proves the resulting drift conserves
+probability.
 -/
 
 namespace Gibbs.MeanField

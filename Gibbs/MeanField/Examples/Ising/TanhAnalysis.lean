@@ -2,16 +2,15 @@ import Gibbs.MeanField.Projection
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
-/-
-The Problem. Establish analytic properties of the hyperbolic tangent
-needed for the Ising model: Lipschitz bound, strict sub-linearity,
-and derivative formulas.
+/-!
+# Analytic Properties of tanh
 
-Solution Structure.
-1. Derivative of sinh/cosh is 1/cosh² (bounded by 1)
-2. MVT gives |tanh x - tanh y| ≤ |x - y| (1-Lipschitz)
-3. Monotonicity argument gives tanh(x) < x for x > 0
-4. Oddness extends to x < 0
+The mean-field Ising model depends on tanh being 1-Lipschitz (ensuring the
+drift is Lipschitz) and strictly sublinear (tanh(x) < x for x > 0, which
+forces the unique-equilibrium result in the paramagnetic phase). This file
+proves these properties from the derivative bound d/dx tanh(x) = 1/cosh(x)^2
+le 1, using the mean value theorem for the Lipschitz bound and a monotonicity
+argument for strict sublinearity.
 -/
 
 namespace Gibbs.MeanField.Examples

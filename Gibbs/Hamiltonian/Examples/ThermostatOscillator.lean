@@ -2,17 +2,13 @@ import Gibbs.Hamiltonian.Basic
 import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.NoseHoover
 
-/-
-The Problem. Provide a concrete Nosé-Hoover example: the harmonic oscillator
-coupled to a thermostat. This is used to instantiate the general thermostat
-machinery in a simple setting.
+/-!
+# Thermostat Oscillator
 
-The difficulty is minimal: we just bundle the harmonic oscillator Hamiltonian
-with thermostat parameters.
-
-Solution Structure.
-1. Define `ThermostatOscillator` as a pair of the harmonic oscillator and
-   thermostat parameters.
+A harmonic oscillator coupled to a Nose-Hoover thermostat. This is the
+simplest nontrivial instance of the extended-phase-space machinery: the
+oscillator provides the physical Hamiltonian while the thermostat variable
+xi drives the system toward canonical equilibrium at the target temperature.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

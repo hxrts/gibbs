@@ -1,20 +1,18 @@
 import Gibbs.Hamiltonian.Legendre
 import Mathlib
 
-/-
-The Problem. The Fenchel-Moreau theorem asks when a function can be recovered exactly from
-its Legendre-Fenchel transform applied twice. The transform replaces a function by the
-supremum of its affine lower bounds, so it encodes the full supporting hyperplane geometry.
+/-!
+# Fenchel-Moreau Duality
 
-For convex lower-semicontinuous functions, f** = f. The proof has two parts:
-1. f** ≤ f follows from Fenchel-Young inequality (supremum bounds all terms)
-2. f ≤ f** uses Hahn-Banach separation to find supporting hyperplanes
+The Fenchel-Moreau theorem states that a convex lower-semicontinuous function
+equals its biconjugate: f** = f. The Legendre-Fenchel transform replaces f by
+the supremum of its affine minorants, so applying it twice recovers f exactly
+when no affine minorant is missing (i.e., f is closed and convex).
 
-Solution Structure.
-1. Define conjugate finiteness predicates for well-definedness
-2. Prove Fenchel-Young and f** ≤ f from the supremum definition
-3. Define subgradients and their connection to the biconjugate
-4. Use Hahn-Banach separation to build supporting hyperplanes for f ≤ f**
+The proof splits into two directions. The inequality f** le f follows from
+Fenchel-Young (each affine term is bounded by the supremum). The reverse
+f le f** uses Hahn-Banach separation to produce a supporting hyperplane at
+every point, which enters the supremum defining f**.
 -/
 
 namespace Gibbs.Hamiltonian

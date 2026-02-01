@@ -1,13 +1,13 @@
 import Gibbs.MeanField.Examples.Ising.Drift
 
-/-
-The Problem. Define Glauber dynamics (local transition rates) for the
-Ising model and prove they reproduce the global mean-field drift.
+/-!
+# Glauber Dynamics
 
-Solution Structure.
-1. Glauber rates α (down→up) and γ (up→down)
-2. Key identities: α - γ = (1/τ)tanh(β(Jm+h)), α + γ = 1/τ
-3. Projection theorem: local rates produce global drift
+Glauber dynamics are local spin-flip rates that implement the global Ising
+drift at the microscopic level. The rate alpha (down to up) and gamma (up to
+down) satisfy alpha - gamma = (1/tau) tanh(beta(J m + h)) and alpha + gamma =
+1/tau. The projection theorem shows that aggregating these local rates over
+the population recovers the macroscopic Ising drift exactly.
 -/
 
 namespace Gibbs.MeanField.Examples

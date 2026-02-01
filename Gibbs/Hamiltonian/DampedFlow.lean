@@ -4,15 +4,15 @@ import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Data.NNReal.Basic
 import Mathlib.Tactic
 
-/-
-The Problem. We need a damped Hamiltonian drift on phase space, together with
-energy bookkeeping for later stability proofs. Damping adds dissipation to
-the momentum equation, making energy a Lyapunov candidate.
+/-!
+# Damped Hamiltonian Dynamics
 
-Solution Structure.
-1. Damping parameter structure (γ > 0)
-2. Damped drift definition on phase space
-3. Energy-derivative helper for later dissipation proofs
+Adding a friction term -gamma * p to the momentum equation breaks energy
+conservation and introduces dissipation. The total energy now decreases along
+trajectories, making it a natural Lyapunov candidate for stability analysis.
+
+This file defines the damping parameter, the damped drift on phase space, and
+the energy-derivative identity used in later dissipation proofs.
 -/
 
 namespace Gibbs.Hamiltonian

@@ -3,19 +3,17 @@ import Gibbs.Hamiltonian.Basic
 import Gibbs.Hamiltonian.ConvexHamiltonian
 import Gibbs.Hamiltonian.DampedFlow
 
-/-
-The Problem. We want a choreography wrapper for Hamiltonian systems: a way to
-assign coordinates to roles, and a way to project Hamiltonian dynamics to a
-mean-field style drift on configuration space.
+/-!
+# Hamiltonian Choreography
 
-The difficulty is keeping the structure lightweight while still recording the
-role partition of coordinates. We also want phase-space messages that can be
-routed through the existing choreography layer without rebuilding it.
+A choreography partitions the degrees of freedom of a Hamiltonian system into
+roles, where each role controls a disjoint subset of coordinates. This mirrors
+distributed systems where different agents govern different state variables.
 
-Solution Structure.
-1. Define `HamiltonianChoreography` with Hamiltonian, damping, and role cover.
-2. Provide a mean-field drift projection on positions only.
-3. Define `PhaseMessage` for position, momentum, force, and coupled states.
+This file defines `HamiltonianChoreography` (a Hamiltonian bundled with damping
+and a role cover), projects the full phase-space drift onto configuration space
+for mean-field coupling, and provides `PhaseMessage` types for routing position,
+momentum, and force data through the choreography layer.
 -/
 
 namespace Gibbs.Hamiltonian

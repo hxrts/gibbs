@@ -2,23 +2,16 @@ import Gibbs.MeanField.LipschitzBridge
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.ODE.PicardLindelof
 
-/-
-The Problem. Given a mean-field choreography with Lipschitz drift, prove
-that the ODE dx/dt = F(x) has a unique global solution that stays in the
-simplex. This connects our choreographic specifications to concrete dynamics.
+/-!
+# ODE Existence and Simplex Invariance
 
-The difficulty is three-fold:
-1. Mathlib's Picard-Lindelöf gives only local existence on a small interval.
-2. Extending to global existence requires chaining local solutions.
-3. Simplex invariance requires a Gronwall comparison argument showing each
-   component stays non-negative (using boundary_nonneg from the choreography).
-
-Solution Structure.
-1. Boundedness lemmas: simplex is bounded, Lipschitz functions bounded on bounded sets
-2. Local existence via IsPicardLindelof.of_time_independent
-3. Sum preservation via ODE_solution_unique with zero drift
-4. Global existence; simplex invariance (pending Gronwall comparison)
-5. Canonical solution extracted via Classical.choose
+Given a Lipschitz mean-field choreography, this file proves that the ODE
+dx/dt = F(x) has a unique global solution that remains on the simplex. The
+argument proceeds in three stages: local existence from Picard-Lindelof on a
+bounded domain, sum preservation (the total probability stays at one because
+the drift is conservative), and simplex invariance (each component stays
+nonneg via a Gronwall comparison using the boundary condition from the
+choreography).
 -/
 
 namespace Gibbs.MeanField

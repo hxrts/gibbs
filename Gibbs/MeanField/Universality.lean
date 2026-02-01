@@ -1,12 +1,13 @@
 import Mathlib.Data.ENNReal.Basic
 
-/-
-The Problem. We need a minimal, application-agnostic vocabulary for
-phase classification that later consensus results can reference.
+/-!
+# Universality Classes
 
-Solution Structure.
-1. Define a small enumeration of universality classes.
-2. Provide a simple classifier based on gap and tunneling flags.
+Systems with qualitatively similar macroscopic behavior belong to the same
+universality class, regardless of microscopic details. Three classes cover the
+main cases: gapless (no macroscopic barrier, critical behavior), gapped (a
+finite barrier separating phases, ordered behavior), and hybrid (a barrier
+exists but rare tunneling events can cross it).
 -/
 
 namespace Gibbs.MeanField

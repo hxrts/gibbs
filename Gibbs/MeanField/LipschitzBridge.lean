@@ -1,19 +1,15 @@
 import Gibbs.MeanField.Choreography
 import Mathlib.Topology.MetricSpace.Lipschitz
 
-/-
-The Problem. Our `DriftFunction.IsLipschitz` predicate on the simplex must
-connect to Mathlib's `LipschitzWith` typeclass to use Picard–Lindelöf
-and Gronwall.
+/-!
+# Lipschitz Bridge to Mathlib ODE Infrastructure
 
-The difficulty is that Mathlib requires globally Lipschitz functions on
-normed spaces, while our drift is defined only on the simplex. We use
-`LipschitzOnWith.extend_pi` to extend to the whole space.
-
-Solution Structure.
-1. Convert our predicate to Mathlib's `LipschitzOnWith` on the simplex
-2. Extend drift to the whole space preserving the Lipschitz constant
-3. Provide time-dependent and choreography wrappers
+Mathlib's Picard-Lindelof and Gronwall theorems require globally Lipschitz
+functions on normed spaces, but our drift is defined only on the simplex. This
+file bridges the gap: it converts the simplex-local Lipschitz predicate to
+Mathlib's `LipschitzOnWith`, extends the drift to the ambient space while
+preserving the Lipschitz constant, and wraps time-dependent and choreography
+drifts for direct use with Mathlib's ODE solvers.
 -/
 
 namespace Gibbs.MeanField

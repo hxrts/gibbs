@@ -3,12 +3,12 @@ import Gibbs.MeanField.Examples.Ising.Drift
 import Gibbs.MeanField.Examples.Ising.Glauber
 import Gibbs.MeanField.Examples.Ising.PhaseTransition
 
-/-
-The Problem. Re-export all Ising model submodules through a single facade.
+/-!
+# Ising Model
 
-Solution Structure.
-1. TanhAnalysis: analytic properties of tanh (Lipschitz, strict sub-linearity)
-2. Drift: Ising drift function, conservation, Lipschitz property, choreography
-3. Glauber: local transition rates and projection correctness
-4. PhaseTransition: paramagnetic uniqueness and ferromagnetic bistability
+Facade for the mean-field Ising example. Imports the tanh analysis needed for
+Lipschitz bounds, the Ising drift and choreography, Glauber dynamics (local
+transition rates that reproduce the global drift), and the phase transition
+proof (unique paramagnetic equilibrium for beta J < 1, bistability for
+beta J > 1).
 -/

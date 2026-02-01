@@ -5,16 +5,13 @@ import Mathlib
 
 set_option maxHeartbeats 0
 
-/-
-The Problem. Provide a concrete Hamiltonian example that can be used in tests
-and examples: the damped harmonic oscillator.
+/-!
+# Damped Harmonic Oscillator
 
-The difficulty is minimal here; we just package the existing quadratic
-Hamiltonian with the damped drift definition.
-
-Solution Structure.
-1. Define the damped harmonic oscillator drift as `dampedDrift` of the
-   quadratic Hamiltonian.
+The harmonic oscillator H = (1/2) omega^2 q^2 + (1/2) p^2 is the universal
+small-oscillation approximation. Adding linear damping gives the canonical
+test case for dissipative Hamiltonian dynamics: exponential decay of energy,
+underdamped vs overdamped regimes, and explicit solution templates.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

@@ -22,12 +22,12 @@ import Gibbs.Hamiltonian.Examples.GradientDescentMinimizer
 import Gibbs.Hamiltonian.Examples.HeavyBallConvergence
 import Gibbs.Hamiltonian.Examples.LatticeMaxwell
 
-/-
-The Problem. Provide a single entry point for the Hamiltonian layer so
-clients can import phase space, convex Hamiltonians, damped dynamics,
-Legendre transforms, stability, ergodic infrastructure, Nosé-Hoover
-thermostat, choreography, and examples without enumerating individual files.
+/-!
+# Hamiltonian Layer
 
-Solution Structure.
-1. Re-export all Hamiltonian submodules and examples
+Single entry point for the Hamiltonian mechanics layer. Importing this file
+brings in phase space foundations, convex and general Hamiltonians, damped and
+symplectic dynamics, Legendre/Fenchel-Moreau duality, Lyapunov stability,
+Gibbs measures, the Nose-Hoover thermostat, stochastic Langevin dynamics,
+choreography, and all worked examples.
 -/

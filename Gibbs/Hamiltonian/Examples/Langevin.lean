@@ -1,19 +1,14 @@
 import Gibbs.Hamiltonian.NoseHoover
 import Gibbs.Hamiltonian.Stochastic.Basic
 
-/-
-The Problem. Provide a deterministic Langevin-style example on the simplex,
-focusing on how constraints are enforced and how this relates to gradient flow.
+/-!
+# Simplex-Projected Langevin Drift
 
-The difficulty is isolating the constraint-handling mechanism without an SDE
-library. We implement the standard "subtract the mean" projection that enforces
-mass conservation, and show it is the identity when the drift already conserves
-mass.
-
-Solution Structure.
-1. Define the simplex projection for an unconstrained drift.
-2. Prove the projected drift conserves mass.
-3. Show the projection is the identity for conservative drifts.
+On the probability simplex, any drift must preserve the constraint that
+coordinates sum to one. The standard technique is to project an unconstrained
+drift onto the simplex tangent space by subtracting its mean, enforcing
+mass conservation. This file defines the projection, proves it preserves
+the sum, and shows it acts as the identity on drifts that already conserve mass.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

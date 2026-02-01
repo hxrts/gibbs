@@ -1,17 +1,14 @@
 import Gibbs.Hamiltonian.DampedFlow
 import Mathlib.Analysis.SpecialFunctions.Exp
 
-/-
-The Problem. Provide Lyapunov-style stability scaffolding for Hamiltonian
-systems with damping, using energy as the canonical Lyapunov candidate.
+/-!
+# Lyapunov Stability
 
-The difficulty is bookkeeping: we need a stability data structure that
-matches the Hamiltonian phase space, and a wrapper that packages the
-energy decrease lemma into that structure.
-
-Solution Structure.
-1. Define `LyapunovData` for phase-space drifts.
-2. Construct `energyLyapunov` from energy monotonicity assumptions.
+For a damped Hamiltonian system, the total energy is a natural Lyapunov
+function: it is bounded below and decreases along trajectories. This file
+defines `LyapunovData`, which bundles a Lyapunov function with its decrease
+certificate, and constructs `energyLyapunov` from energy monotonicity
+assumptions on the damped drift.
 -/
 
 namespace Gibbs.Hamiltonian

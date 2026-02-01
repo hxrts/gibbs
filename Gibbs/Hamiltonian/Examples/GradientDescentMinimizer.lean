@@ -1,11 +1,12 @@
 import Gibbs.Hamiltonian.Examples.GradientDescent
 
-/-
-The Problem. Provide a full proof of existence and uniqueness of minimizers
-for strongly convex objectives in the heavy-ball setup.
+/-!
+# Unique Minimizer for Strongly Convex Objectives
 
-This file mirrors the reference proof structure in `work/ball.lean`, but is
-kept separate so the main example remains lightweight.
+A strongly convex continuous function on a finite-dimensional space has a
+unique global minimizer. The proof uses strong convexity to establish strict
+convexity (ruling out multiple minimizers) and coercivity (forcing sublevel
+sets to be compact), then applies the extreme value theorem.
 -/
 
 namespace Gibbs.Hamiltonian.Examples

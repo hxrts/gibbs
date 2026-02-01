@@ -1,18 +1,18 @@
 import Mathlib
 import Gibbs.Hamiltonian.Basic
 
-/-
-The Problem. Provide a stochastic Langevin core together with a full proof
-that the Gibbs density is stationary for the associated Fokker–Planck equation.
+/-!
+# Langevin Dynamics and Fokker-Planck Stationarity
 
-The difficulty is keeping the stochastic side lightweight while still
-formalizing the PDE-level stationary statement. We follow a direct
-calculus proof, specialized to the quadratic kinetic energy 1/2‖p‖².
+Langevin dynamics adds Gaussian noise to the damped Hamiltonian equations,
+modeling thermal fluctuations. The corresponding Fokker-Planck equation
+governs the evolution of the probability density in phase space.
 
-Solution Structure.
-1. Define Langevin parameters and Brownian effects.
-2. Define the Euler–Maruyama update and Fokker–Planck operator.
-3. Prove the Gibbs density is stationary under fluctuation–dissipation.
+When the noise strength satisfies the fluctuation-dissipation relation
+(sigma^2 = 2 gamma / beta), the Gibbs density exp(-beta H) is stationary
+for the Fokker-Planck operator. This file proves that identity for the
+quadratic kinetic energy T = (1/2) norm(p)^2, using direct calculus on the
+drift and diffusion terms.
 -/
 
 namespace Gibbs.Hamiltonian.Stochastic

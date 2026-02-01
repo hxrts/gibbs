@@ -1,14 +1,14 @@
 import Mathlib.Data.ENNReal.Basic
 import Gibbs.Hamiltonian.EnergyDistance
 
-/-
-The Problem. We need a generic notion of a "gap" between sets of states,
-expressed purely in terms of an energy-distance, so later applications
-(consensus or otherwise) can specialize it.
+/-!
+# Energy Gap
 
-Solution Structure.
-1. Define the gap as the infimum of cross-set distances.
-2. Provide a basic upper bound lemma for elements of the sets.
+The energy gap between two sets of states is the infimum of pairwise distances
+across the sets. A positive gap means every path from one set to the other must
+cross a nontrivial energy barrier. In physics this distinguishes ordered from
+disordered phases. In consensus it separates safe (agreement) from unsafe
+(disagreement) executions, with the gap quantifying finality strength.
 -/
 
 namespace Gibbs.Hamiltonian

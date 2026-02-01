@@ -1,22 +1,17 @@
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
-/-
-The Problem. We need foundational types for Hamiltonian mechanics:
-phase space points (position q, momentum p), equilibrium conditions,
-and embeddings from configuration space.
+/-!
+# Phase Space Foundations
 
-The key insight is to use EuclideanSpace ℝ (Fin n) rather than
-Fin n → ℝ, because EuclideanSpace provides the InnerProductSpace
-instance needed for gradients to work properly with Mathlib's
-calculus infrastructure.
+Hamiltonian mechanics lives on phase space, the product of position and momentum
+coordinates. This file defines `Config` (configuration space) and `PhasePoint`
+(the full phase space), along with equilibrium predicates and inherited metric
+structure.
 
-Solution Structure.
-1. Config: configuration space as EuclideanSpace
-2. PhasePoint: paired (q, p) with position and momentum
-3. Equilibrium predicates: zero momentum, fixed point conditions
-4. Norm and metric: inherited from product of EuclideanSpaces
-5. Basic lemmas: projections, embeddings, simple properties
+We use `EuclideanSpace ℝ (Fin n)` rather than `Fin n → ℝ` because
+`EuclideanSpace` carries the `InnerProductSpace` instance that Mathlib's
+gradient and calculus API requires.
 -/
 
 namespace Gibbs.Hamiltonian

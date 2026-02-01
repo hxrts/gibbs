@@ -4,16 +4,17 @@ import Gibbs.Hamiltonian.Ergodic
 import Mathlib.Data.NNReal.Basic
 import Mathlib.Tactic
 
-/-
-The Problem. Implement the deterministic Nosé–Hoover thermostat on an
-extended phase space (q, p, ξ), along with the basic algebraic energy
-identities used in stability and equilibrium arguments.
+/-!
+# Nose-Hoover Thermostat
 
-Solution Structure.
-1. Thermostat parameters and extended phase space
-2. Drift definition for the Nosé–Hoover dynamics
-3. Energy rate identities for the subsystem and extended Hamiltonian
-4. Simple equilibrium consequences (cooling and equipartition target)
+The Nose-Hoover thermostat extends phase space by a scalar friction variable xi
+that couples to the momentum equation. Unlike fixed damping, xi evolves
+dynamically to enforce a target kinetic temperature, producing canonical
+(constant-temperature) sampling in the ergodic limit.
+
+This file defines thermostat parameters, the extended phase space (q, p, xi),
+the Nose-Hoover drift, and the energy-rate identities for both the physical
+subsystem and the extended Hamiltonian.
 -/
 
 namespace Gibbs.Hamiltonian

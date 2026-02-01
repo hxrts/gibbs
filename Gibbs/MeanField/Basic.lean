@@ -1,20 +1,18 @@
 import Gibbs.Core
 
-/-
-The Problem. We need foundational types for mean-field theory:
-population states over finite type spaces, empirical measures
-(fractional distributions), and the probability simplex.
+/-!
+# Mean-Field Foundations
 
-These types bridge discrete agent counts with continuous ODEs.
-The key insight is that as population size N → ∞, the empirical
-measure (counts/N) converges to a point in the simplex.
+In mean-field theory, a large population of agents is described not by
+individual states but by the fraction of agents in each state. As the
+population size N grows, the empirical measure (counts / N) converges to a
+point on the probability simplex, and the stochastic dynamics converge to a
+deterministic ODE on that simplex.
 
-Solution Structure.
-1. PopulationState: integer counts over a finite state space Q
-2. Empirical measure: normalized fractions in [0,1]
-3. Simplex: the space of valid probability distributions
-4. TwoState: canonical two-element type for Ising-like models
-5. Magnetization: order parameter m = 2x - 1 for two-state systems
+This file defines `PopulationState` (integer counts over a finite state space),
+the empirical measure (normalized fractions), the simplex, and the canonical
+two-state type used in Ising-like models with its magnetization order parameter
+m = 2x - 1.
 -/
 
 namespace Gibbs.MeanField
