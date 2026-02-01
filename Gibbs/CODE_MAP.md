@@ -48,12 +48,11 @@ Gibbs/Core.lean
     └── MeanField/Choreography.lean
         ├── MeanField/Rules.lean
         │   └── MeanField/Projection.lean
-        ├── MeanField/LipschitzBridge.lean
-        │   ├── MeanField/ODE.lean
-        │   │   ├── MeanField/Existence.lean
-        │   │   └── MeanField/Stability.lean
-        │   └── MeanField/Examples/Ising/…
-        └── MeanField/Projection.lean
+        └── MeanField/LipschitzBridge.lean
+            ├── MeanField/ODE.lean
+            │   ├── MeanField/Existence.lean
+            │   └── MeanField/Stability.lean
+            └── MeanField/Examples/Ising/…
 
 └── Consensus/Basic.lean
     ├── Consensus/Observation.lean
@@ -83,7 +82,7 @@ Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic` + `La
 ## Proof Completeness
 
 **No `sorry` anywhere in the codebase.**
-All previously noted placeholder stubs have been replaced with concrete definitions.
+All definitions and proofs are concrete.
 
 ---
 
@@ -242,7 +241,7 @@ Proves the Fenchel–Moreau theorem: a lower-semicontinuous convex function equa
 
 #### `Hamiltonian/NoseHoover.lean`
 
-Implements the Nosé–Hoover thermostat, which extends Hamiltonian dynamics with a feedback variable ξ that injects or removes energy to drive the system toward a target temperature. Includes ergodicity scaffolding connecting to the Gibbs measure.
+Implements the Nosé–Hoover thermostat, which extends Hamiltonian dynamics with a feedback variable ξ that injects or removes energy to drive the system toward a target temperature. Includes ergodicity infrastructure connecting to the Gibbs measure.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -336,9 +335,54 @@ Bridges Hamiltonian mechanics with session-type choreography by partitioning pha
 **Assumptions on `HamiltonianChoreography n`:**
 - `roles_partition : ∀ i, ∃! r, i ∈ roles r` — every coordinate is owned by exactly one role
 
+#### `Hamiltonian/PartitionFunction.lean`
+
+Finite-state partition function Z(beta) = sum_x exp(-beta H(x)) and free energy F = -(1/beta) log Z. Proves nonnegativity of Z, bounds relating Z to the minimum energy, and free-energy sandwiching: min H - (log |Omega|)/beta le F le min H.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `partitionFunction` | Z(beta) = sum exp(-beta H(x)) |
+| def | `freeEnergy` | F = -(1/beta) log Z |
+| def | `minEnergy` | min_x H(x) over finite state space |
+| theorem | `partitionFunction_nonneg` | Z ge 0 via `Finset.sum_nonneg` |
+| lemma | `energyImage_nonempty` | Image of H on Finset.univ is nonempty |
+| theorem | `minEnergy_mem` | Some state attains the minimum energy |
+| theorem | `minEnergy_le` | minEnergy le H(x) for all x |
+| theorem | `partitionFunction_le_card_mul_exp_min` | Z le |Omega| exp(-beta min H) |
+| theorem | `exp_min_le_partitionFunction` | exp(-beta min H) le Z |
+| theorem | `log_partitionFunction_le_card_exp` | log Z le log|Omega| + (-beta min H) |
+| theorem | `freeEnergy_le_minEnergy` | F le min H |
+| theorem | `minEnergy_le_freeEnergy_add` | min H - (log|Omega|)/beta le F |
+
+**Key hypotheses:** Bounds require `0 < beta` and `[Nonempty alpha]`.
+
+**Strategy**: `Finset.sum_nonneg`, `exp_nonneg`, `Finset.single_le_sum`, `Real.log_le_log`, `field_simp`, `ring`.
+
+#### `Hamiltonian/EnergyDistance.lean`
+
+Pseudometric valued in extended nonneg reals, modeling energy barriers between states. Used by both the physics gap machinery and the consensus interactive distance.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| class | `EnergyDistance alpha` | dist : alpha -> alpha -> ENNReal with self/comm/triangle |
+| def | `edistBall` | Ball of radius r around a state |
+| theorem | `edist_self` | dist x x = 0 |
+
+#### `Hamiltonian/EnergyGap.lean`
+
+Gap between two sets of states, defined as the infimum of pairwise cross-set distances. A positive gap means a nontrivial energy barrier separates the sets.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `energyGap` | sInf of cross-set distances |
+| def | `HasEnergyGap` | 0 < energyGap A B |
+| theorem | `energyGap_le_dist` | Any witness pair upper-bounds the gap |
+
+**Strategy**: `sInf_le` with explicit witness.
+
 #### `Hamiltonian/Stochastic/Basic.lean`
 
-Minimal stochastic scaffolding with constant-diffusion Itô integral. Provides a Brownian motion interface, SDE structure, and solution predicate using Mathlib's Bochner integral for the pathwise additive-noise case.
+Constant-diffusion stochastic dynamics with a closed-form Itô integral. Provides a Brownian motion interface, SDE structure, and solution predicate using Mathlib's Bochner integral for the pathwise additive-noise case.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -410,7 +454,7 @@ Defines the probability simplex and population states.
 
 #### `MeanField/OrderParameter.lean`
 
-Lightweight order-parameter scaffolding for finite systems. Defines mean values, magnetization, and an `OrderParameter` wrapper.
+Order-parameter definitions for finite systems. Defines mean values, magnetization, and an `OrderParameter` wrapper.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -532,9 +576,66 @@ Addresses the inverse problem: given a target drift, find nonneg rate functions 
 | theorem | `projection_correct` | Solution reproduces target |
 | theorem | `projection_exists` | Existence under conic decomposition |
 
-#### `MeanField/Examples/Ising/`
+#### `MeanField/Examples/Ising/TanhAnalysis.lean`
 
-Four files implementing the mean-field Ising model. `TanhAnalysis.lean` analyzes m = tanh(βm). `Drift.lean` defines drift and proves conservation. `Glauber.lean` builds Glauber spin-flip dynamics. `PhaseTransition.lean` characterizes the phase transition at β = 1.
+Analytic properties of tanh needed for the Ising model: 1-Lipschitz bound and strict sublinearity (tanh(x) < x for x > 0).
+
+| Kind | Name | Notes |
+|------|------|-------|
+| theorem | `Real.abs_tanh_sub_tanh_le` | 1-Lipschitz via MVT |
+| theorem | `Real.tanh_lt_self` | tanh(x) < x for x > 0 |
+| theorem | `Real.self_lt_tanh` | tanh(x) > x for x < 0 |
+| theorem | `Real.abs_tanh_lt_abs` | |tanh(x)| < |x| for x ne 0 |
+| theorem | `hasDerivAt_tanh` | d/dx tanh = 1/cosh^2 |
+| theorem | `continuous_tanh` | Continuity |
+| theorem | `tanh_lt_one` | tanh(x) < 1 for all x |
+
+**Strategy**: MVT, monotonicity of tanh - id, `nlinarith`.
+
+#### `MeanField/Examples/Ising/Drift.lean`
+
+Ising drift function and choreography. The ODE right-hand side is (1/tau)[tanh(beta(Jm+h)) - m] where m is the magnetization.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `IsingParams` | beta, J, h, tau with positivity |
+| def | `IsingParams.criticalBeta`, `.isFerromagnetic`, `.isParamagnetic` | Phase classification |
+| def | `isingDrift` | ODE right-hand side on TwoState |
+| theorem | `isingDrift_conserves` | Sum of drift components is zero |
+| theorem | `isingDrift_lipschitz` | Lipschitz via tanh being 1-Lipschitz |
+| theorem | `isingDrift_boundary_nonneg` | Drift points inward at simplex boundary |
+| def | `IsingChoreography` | Full choreography bundle |
+
+**Strategy**: `ring`, tanh Lipschitz composition, `by_cases` on TwoState.
+
+#### `MeanField/Examples/Ising/Glauber.lean`
+
+Glauber spin-flip dynamics: local transition rates that reproduce the global Ising drift when aggregated.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `glauberAlpha` | Down-to-up rate |
+| def | `glauberGamma` | Up-to-down rate |
+| theorem | `glauberAlpha_nonneg`, `glauberGamma_nonneg` | Rate nonnegativity |
+| theorem | `glauber_diff` | alpha - gamma = (1/tau) tanh(beta(Jm+h)) |
+| theorem | `glauber_sum` | alpha + gamma = 1/tau |
+| theorem | `glauber_produces_isingDrift` | Aggregated rates = Ising drift |
+
+**Strategy**: algebra on exp sums, `field_simp`, `ring`.
+
+#### `MeanField/Examples/Ising/PhaseTransition.lean`
+
+Phase transition at beta J = 1. Paramagnetic phase has unique equilibrium m = 0. Ferromagnetic phase has two nonzero equilibria found by IVT.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `isSelfConsistent` | m = tanh(beta(Jm + h)) |
+| def | `equilibriumMagnetizations` | Self-consistent m in [-1,1] |
+| theorem | `zero_is_equilibrium` | m = 0 always solves when h = 0 |
+| theorem | `paramagnetic_unique_equilibrium` | beta J < 1 implies m = 0 is unique |
+| theorem | `ferromagnetic_bistable` | beta J > 1 implies two nonzero solutions |
+
+**Strategy**: strict sublinearity of tanh (paramagnetic), IVT on residual f(m) = m - tanh(beta J m) (ferromagnetic).
 
 ---
 
@@ -653,7 +754,7 @@ The consensus layer specializes the physics-first machinery to executions, decis
 | Kind | Name | Notes |
 |------|------|-------|
 | def | `classOf`, `IsGapped` | Classifier + gap predicate |
-| def | `gapSequence`, `thermodynamicGap` | Thermodynamic limit scaffolding |
+| def | `gapSequence`, `thermodynamicGap` | Thermodynamic limit definitions |
 | theorem | `thermodynamicGap_ge_of_eventually_ge` | Eventual lower bound ⇒ liminf lower bound |
 
 #### `Consensus/CodingBridge.lean`
@@ -683,7 +784,40 @@ The consensus layer specializes the physics-first machinery to executions, decis
 
 #### `Consensus/Examples/RepetitionCode.lean`
 
-Repetition code example with majority decoding and correction radius `⌊(N-1)/2⌋`.
+Repetition code: encode one bit as N copies, decode by majority vote. Corrects up to floor((N-1)/2) errors. This is the simplest gapped phase, equivalent to the Ising ferromagnet and quorum consensus.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `Codeword` | `Fin N -> Bool` |
+| def | `repetitionEncode` | Constant-value codeword |
+| def | `countTrue`, `errorCount` | Counting helpers |
+| def | `majorityDecode` | Decode by majority of true/false |
+| def | `CorrectsUpTo` | Correction radius predicate |
+| theorem | `majorityDecode_repetition` | Majority recovers original if errors le floor((N-1)/2) |
+| theorem | `repetition_corrects_up_to` | `CorrectsUpTo` for radius floor((N-1)/2) |
+
+**Strategy**: `Nat` arithmetic, `by_cases`, `omega`.
+
+#### `Consensus/Examples/QuorumBFT.lean`
+
+Quorum-based BFT with N = 3f+1 and quorum size 2f+1. Demonstrates that the safety gap exists (quorum intersection ge f+1) and collapses at N = 3f.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| theorem | `quorum_intersection_example` | Instantiates intersection bound at 3f+1 |
+| theorem | `quorum_gap_collapse` | Gap vanishes at N = 3f |
+
+**Strategy**: `omega`, specialization of `quorum_intersection_lower`.
+
+#### `Consensus/Examples/NakamotoSketch.lean`
+
+Nakamoto longest-chain as a gapless (Class I) system. No hard safety gap, but reorganization probability decays geometrically with confirmation depth.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `gaplessGap` | Interactive distance is zero (no gap) |
+| def | `reorgProbability` | Geometric decay model for reorg probability |
+| theorem | `reorgProbability_succ_le` | Each additional confirmation reduces probability |
 
 ### ContinuumField Layer
 
@@ -804,3 +938,8 @@ Self-contained mirror of the Effects system's spatial types (`Site`, `RoleName`,
 | Gaussian integral decomposition | GaussianIntegrals | Product-measure Gaussian identities over Config |
 | Compactness + coercivity | GradientDescentMinimizer | Minimizer existence for strongly convex functions |
 | FP substitution + fluctuation-dissipation | LangevinFokkerPlanck | Gibbs stationarity under σ² = 2γkT |
+| `Finset.sum_nonneg` + `exp_nonneg` | PartitionFunction | Z nonnegativity, free-energy bounds |
+| `sInf_le` with witness | EnergyGap | Gap upper bound from any cross-set pair |
+| MVT + monotonicity | TanhAnalysis | tanh 1-Lipschitz, strict sublinearity |
+| IVT on residual | PhaseTransition | Ferromagnetic bistability |
+| `omega` | QuorumBFT, Thresholds | Nat arithmetic for quorum intersection and thresholds |
