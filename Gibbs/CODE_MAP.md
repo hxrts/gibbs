@@ -3,7 +3,7 @@
 ## Module Dependency Tree
 
 ```
-Gibbs/Core.lean
+Gibbs/Session.lean
 │
 ├── Hamiltonian/Basic.lean
 │   ├── Hamiltonian/PartitionFunction.lean
@@ -51,7 +51,8 @@ Gibbs/Core.lean
         └── MeanField/LipschitzBridge.lean
             ├── MeanField/ODE.lean
             │   ├── MeanField/Existence.lean
-            │   └── MeanField/Stability.lean
+            │   ├── MeanField/Stability.lean
+            │   └── MeanField/BregmanBridge.lean  (also imports Hamiltonian/Legendre)
             └── MeanField/Examples/Ising/…
 
 └── Consensus/Basic.lean
@@ -74,7 +75,8 @@ Gibbs/Core.lean
     └── Consensus/Examples/…
 ```
 
-Facade modules: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`, `Gibbs/Consensus.lean`.
+Root facade: `Gibbs.lean` (imports all layers).
+Layer facades: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`, `Gibbs/Consensus.lean`.
 Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic` + `LangevinFokkerPlanck`).
 
 ---
@@ -88,9 +90,9 @@ All definitions and proofs are concrete.
 
 ## Per-File Detail
 
-### `Core.lean`
+### `Session.lean`
 
-Foundational type aliases and structures for session typing. Defines the vocabulary shared across all layers: session identifiers, roles, labels, endpoints, and communication edges.
+Session-typing vocabulary shared across choreography bridges: session identifiers, roles, labels, endpoints, and directed communication edges.
 
 | Kind | Name | Notes |
 |------|------|-------|
@@ -135,6 +137,10 @@ Defines Hamiltonians with separable, convex kinetic and potential energy. Convex
 | theorem | `quadraticPotential_strictConvex` | `refine`, `nlinarith`. Requires `[NeZero n]` |
 | theorem | `energy_nonneg` | `positivity` |
 | theorem | `energy_eq_zero_iff` | `linarith` |
+| structure | `StronglyConvex` | f is m-strongly convex (m > 0, quadratic lower bound) |
+| structure | `LipschitzGradient` | gradient of f is L-Lipschitz (L > 0) |
+| def | `conditionNumber` | L / m condition number |
+| def | `optimalDamping` | 2√m critical damping coefficient |
 
 **Assumptions on `ConvexHamiltonian`:**
 - `T_convex : ConvexOn ℝ Set.univ T` — kinetic energy is convex everywhere
@@ -205,7 +211,7 @@ Develops the Legendre transform and Bregman divergence. The Bregman divergence D
 | theorem | `bregman_nonneg` | Convexity → D_f ≥ 0 |
 | theorem | `bregman_eq_zero_iff` | Strict convexity → D_f = 0 ↔ x = y |
 | theorem | `bregman_quadratic` | For f = ½‖·‖²: D_f = ½‖x−y‖² |
-| def | `bregman_lyapunov_data` | Packages Bregman divergence as Lyapunov data |
+| | | Bregman-Lyapunov bridge moved to `MeanField/BregmanBridge.lean` |
 
 **Key theorem hypotheses:**
 - `bregman_nonneg` requires `ConvexOn ℝ Set.univ f` and `Differentiable ℝ f`
@@ -425,7 +431,7 @@ Full Langevin dynamics with Fokker–Planck equation and proof that the Gibbs de
 | `HarmonicOscillator.lean` | Damped harmonic oscillator. Instantiates DampedFlow for the quadratic Hamiltonian; proves energy dissipation and decrease. |
 | `Langevin.lean` | Connects Langevin dynamics to Nosé–Hoover. Proves simplex projection preserves zero-sum, Nosé–Hoover at ξ=γ matches damped dynamics, and both target Gibbs equilibrium. Constructs `langevinProcess` via stochastic core. |
 | `ThermostatOscillator.lean` | Nosé–Hoover applied to oscillator. Proves equipartition at equilibrium, bounded orbits, and perpetual oscillation. |
-| `GradientDescent.lean` | Heavy-ball optimization as Hamiltonian mechanics. When p = −∇V(q), configuration trajectory reduces to gradient flow. |
+| `GradientDescent.lean` | Heavy-ball optimization as Hamiltonian mechanics. Lyapunov candidate for momentum dynamics using `StronglyConvex` and `LipschitzGradient` from `ConvexHamiltonian`. |
 | `GradientDescentMinimizer.lean` | Existence and uniqueness of minimizers for strongly convex objectives. Proves coercivity, compactness on closed ball, and uniqueness via strict convexity. Provides `minimizer` and `minimizer_spec`. |
 | `HeavyBallConvergence.lean` | Lyapunov analysis for heavy-ball/momentum dynamics. Proves derivative formula, strong convexity + Young bounds, and exponential decay of modified energy via `heavyBallLyapunov_decay`. |
 | `LatticeMaxwell.lean` | Maxwell's equations on a discrete 3D lattice with Yee-style stencils. Implements `curlE`/`curlB`, ghost edges/faces, and local/global coherence. Proves energy nonnegativity and zero-field minimizer. |
@@ -538,6 +544,20 @@ ODE existence, uniqueness, and simplex invariance for mean-field dynamics. Uses 
 
 **Definition:**
 - `IsHurwitz F x` — all eigenvalues of `Jacobian F x` have negative real part
+
+#### `MeanField/BregmanBridge.lean`
+
+Connects the Hamiltonian Legendre layer to MeanField ODE stability. Converts between `Config n` (Euclidean) and `Fin n → ℝ` (simplex) representations and packages the Bregman divergence as a strict Lyapunov function for mean-field dynamics.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `toConfig`, `fromConfig` | `EuclideanSpace.equiv` conversion helpers |
+| theorem | `toConfig_fromConfig`, `fromConfig_toConfig` | Round-trip identities |
+| theorem | `bregman_pos_of_ne` | Bregman divergence positive away from equilibrium |
+| theorem | `toConfig_ne_of_ne` | Injectivity of toConfig |
+| def | `bregman_lyapunov_data` | `StrictLyapunovData` from Legendre strict convexity |
+
+**Strategy**: `EuclideanSpace.equiv` round-trips, Bregman positivity from Legendre strict convexity.
 
 #### `MeanField/Existence.lean`
 

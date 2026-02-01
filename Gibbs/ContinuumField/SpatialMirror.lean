@@ -1,4 +1,4 @@
-import Gibbs.Core
+import Gibbs.Session
 
 /-!
 # Spatial model mirror

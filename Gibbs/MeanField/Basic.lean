@@ -1,4 +1,4 @@
-import Gibbs.Core
+import Gibbs.Session
 
 /-!
 # Mean-Field Foundations

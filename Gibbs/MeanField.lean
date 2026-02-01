@@ -8,6 +8,7 @@ import Gibbs.MeanField.Stability
 import Gibbs.MeanField.Projection
 import Gibbs.MeanField.OrderParameter
 import Gibbs.MeanField.Universality
+import Gibbs.MeanField.BregmanBridge
 import Gibbs.MeanField.Examples.Ising
 
 /-!

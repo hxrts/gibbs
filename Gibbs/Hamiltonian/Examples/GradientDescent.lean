@@ -59,32 +59,7 @@ theorem heavyBall_q_equals_gradientFlow (n : ℕ) (V : Config n → ℝ)
   simp [heavyBallDrift, dampedDrift_q, momentumHamiltonian, gradientFlow,
     ConvexHamiltonian.velocity, quadraticKinetic_grad, hp]
 
-/-! ## Strong Convexity and Lyapunov Scaffolding -/
-
-/-- Strong convexity with parameter m. -/
-structure StronglyConvex (f : Config n → ℝ) (m : ℝ) : Prop where
-  /-- Strong convexity parameter is positive. -/
-  m_pos : 0 < m
-  /-- Quadratic lower bound with gradient linearization. -/
-  lower_bound :
-    ∀ x y, f y ≥ f x + inner (𝕜 := ℝ) (gradient f x) (y - x) +
-      (m / 2) * ‖y - x‖ ^ 2
-
-/-- Lipschitz gradient with constant L. -/
-structure LipschitzGradient (f : Config n → ℝ) (L : ℝ) : Prop where
-  /-- Lipschitz constant is positive. -/
-  L_pos : 0 < L
-  /-- Gradient is L-Lipschitz. -/
-  lipschitz : ∀ x y, ‖gradient f x - gradient f y‖ ≤ L * ‖x - y‖
-
-/-- Condition number κ = L/m. -/
-def conditionNumber (m L : ℝ) : ℝ := L / m
-
-/-- Optimal damping used in heavy-ball rates. -/
-def optimalDamping (m : ℝ) : ℝ := 2 * Real.sqrt m
-
--- Existence/uniqueness of minimizers is proved in
--- `Gibbs/Hamiltonian/Examples/GradientDescentMinimizer.lean`.
+/-! ## Heavy-Ball Lyapunov Candidate -/
 
 /-- Heavy-ball Lyapunov candidate around a reference point. -/
 noncomputable def heavyBallLyapunov (n : ℕ) (f : Config n → ℝ)

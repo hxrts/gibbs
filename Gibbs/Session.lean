@@ -1,20 +1,15 @@
 import Mathlib
 
-/-! # Core Definitions
+/-! # Session Types
 
-Foundational types and structures for the Gibbs library.
-
-## Main Definitions
-
-- `SessionId`: Session identifier type
-- `Role`: Participant role type
-- `Endpoint`: A (session, role) pair identifying a participant's view
-- `Edge`: A directed communication channel between two roles in a session
+Vocabulary for multiparty session typing: session identifiers, roles, labels,
+endpoints, and directed communication edges. These types are used by the
+choreography bridges in the Hamiltonian and ContinuumField layers.
 -/
 
 namespace Gibbs
 
-/-! ## Core Types -/
+/-! ## Session Types -/
 
 abbrev SessionId := Nat
 abbrev Role := String
