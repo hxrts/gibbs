@@ -3,7 +3,7 @@ import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 
 /-!
-Minimal stochastic scaffolding for Hamiltonian dynamics.
+Constant-diffusion stochastic dynamics for Hamiltonian systems.
 
 This module models constant-diffusion Langevin noise by using the closed-form
 Itô integral for a constant diffusion matrix: `∫₀ᵗ A dW = A (W_t - W_0)`. We keep

@@ -13,8 +13,8 @@ package gibbs
 
 -- Use shared local mathlib installation (with pre-built artifacts)
 require mathlib from "../lean_common/mathlib4"
--- Effects spatial system from the local rumpsteak-aura repo
-require rumpsteakLean from "../rumpsteak-aura/lean"
+-- Effects spatial system from the local telltale repo
+require telltale from "../telltale/lean"
 
 /-- Main library for mean-field session types formalization. -/
 @[default_target]

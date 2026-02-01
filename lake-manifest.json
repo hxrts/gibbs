@@ -3,10 +3,10 @@
  "packages":
  [{"type": "path",
    "scope": "",
-   "name": "rumpsteakLean",
+   "name": "telltale",
    "manifestFile": "lake-manifest.json",
    "inherited": false,
-   "dir": "../rumpsteak-aura/lean",
+   "dir": "../telltale/lean",
    "configFile": "lakefile.lean"},
   {"type": "path",
    "scope": "",

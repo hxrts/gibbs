@@ -2,7 +2,7 @@ import Gibbs.Hamiltonian.Examples.GradientDescent
 import Mathlib
 
 /-!
-Heavy-ball convergence scaffolding: Lyapunov derivative + exponential comparison.
+Heavy-ball convergence: Lyapunov derivative and exponential comparison.
 
 This module computes the derivative of the standard heavy-ball Lyapunov
 functional along solutions and provides a generic exponential decay lemma
