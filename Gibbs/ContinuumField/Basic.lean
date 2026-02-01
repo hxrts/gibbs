@@ -1,17 +1,14 @@
 import Mathlib
 
-/-
-The Problem. We need basic field-level objects for continuum models:
-spatial fields, a bundled state (density, polarization, spin), and
-lightweight aliases that can be reused by kernel and projection layers.
+/-!
+# Continuum field primitives
 
-The difficulty is keeping the interface minimal while still expressing
-adaptive kernels that depend on fields. We keep the state generic over
-space and value types.
-
-Solution Structure.
-1. Field alias: X → V
-2. FieldState: rho, p, omega bundled together
+The basic degrees of freedom for spatially extended models. A *field* is a
+function from positions `X` to values `V`, and the global state bundles three
+fields: density `ρ(x)`, polarization `p(x)`, and spin/turning `ω(x)`. These
+are the continuum analogues of the discrete per-process states in the
+consensus layer. All kernel, projection, and closure machinery is
+parameterized over this generic state bundle.
 -/
 
 namespace Gibbs.ContinuumField

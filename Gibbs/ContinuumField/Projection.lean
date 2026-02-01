@@ -1,19 +1,16 @@
 import Gibbs.ContinuumField.Kernel
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
-/-
-The Problem. We need an exact correspondence between the global nonlocal
-operator and the local-kernel form obtained by projection. This is the core
-"exactness" guarantee for global → local kernels.
+/-!
+# Projection exactness
 
-The difficulty is keeping the statement minimal: we want a definitional
-connection without invoking change-of-variables arguments. We therefore define
-both operators in displacement form.
-
-Solution Structure.
-1. nonlocalGlobal: operator using the global kernel in displacement form
-2. nonlocalLocal: operator using the projected local kernel field
-3. exactness lemma: the two are definitionally equal
+The nonlocal operator `∫ K(x,x')(p(x') - p(x)) dx'` can be written in two
+equivalent forms: directly using the global kernel `K(x,x')`, or using the
+projected local kernel `K_x(ξ) = K(x, x+ξ)` in displacement coordinates.
+The exactness theorem shows these are *definitionally equal* in Lean, not
+merely propositionally. This means projecting a global kernel to local form
+introduces zero approximation error, and any computation done with local
+kernels is faithful to the global operator.
 -/
 
 namespace Gibbs.ContinuumField

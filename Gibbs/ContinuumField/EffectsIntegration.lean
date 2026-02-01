@@ -3,20 +3,19 @@ import Gibbs.ContinuumField.Kernel
 import Gibbs.ContinuumField.Projection
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
-/-
-The Problem. We need a minimal interface between choreography-level kernel
-specifications and local environments that carry kernel fields, together with
-a coherence check and a projection-soundness lemma for the nonlocal operator.
+/-!
+# Choreography-to-kernel integration
 
-The difficulty is keeping the interface lightweight while still connecting to
-role locations and exactness. We therefore define kernel declarations, local
-kernel environments, and a simple soundness lemma that reuses the exactness
-result.
+Connects choreography-level kernel declarations to local kernel environments
+carried by individual roles. A `KernelDecl` wraps a global kernel as a
+choreography specification. A `LocalKernelEnv` assigns each role a local
+kernel field. The `KernelCoherent` predicate asserts that every role's local
+kernel matches the global kernel projected to that role's location.
 
-Solution Structure.
-1. KernelDecl + LocalKernelEnv
-2. Coherence predicate and projection map
-3. Projection soundness lemma for nonlocal operator
+The projection-soundness theorem shows that when coherence holds, evaluating
+the nonlocal operator from local kernel fields reproduces the global operator
+exactly. This closes the loop: choreography-level specifications project
+faithfully to role-level computations.
 -/
 
 namespace Gibbs.ContinuumField

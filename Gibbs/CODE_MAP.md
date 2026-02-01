@@ -6,6 +6,9 @@
 Gibbs/Core.lean
 │
 ├── Hamiltonian/Basic.lean
+│   ├── Hamiltonian/PartitionFunction.lean
+│   ├── Hamiltonian/EnergyDistance.lean
+│   ├── Hamiltonian/EnergyGap.lean
 │   ├── Hamiltonian/ConvexHamiltonian.lean
 │   │   ├── Hamiltonian/DampedFlow.lean
 │   │   │   ├── Hamiltonian/Choreography.lean
@@ -21,8 +24,8 @@ Gibbs/Core.lean
 │   │   │   ├── Hamiltonian/Examples/GradientDescentMinimizer.lean
 │   │   │   └── Hamiltonian/Examples/HeavyBallConvergence.lean
 │   │   └── Hamiltonian/Examples/LatticeMaxwell.lean
-│   ├── Hamiltonian/Ergodic.lean
-│   │   └── Hamiltonian/GaussianIntegrals.lean
+│   ├── Hamiltonian/GaussianIntegrals.lean
+│   ├── Hamiltonian/Ergodic.lean              (imports GaussianIntegrals)
 │   ├── Hamiltonian/Stability.lean
 │   └── Hamiltonian/Stochastic/
 │       ├── Hamiltonian/Stochastic/Basic.lean
@@ -40,6 +43,8 @@ Gibbs/Core.lean
 │           └── ContinuumField/SpatialMirror.lean
 │
 └── MeanField/Basic.lean
+    ├── MeanField/OrderParameter.lean
+    ├── MeanField/Universality.lean
     └── MeanField/Choreography.lean
         ├── MeanField/Rules.lean
         │   └── MeanField/Projection.lean
@@ -49,9 +54,28 @@ Gibbs/Core.lean
         │   │   └── MeanField/Stability.lean
         │   └── MeanField/Examples/Ising/…
         └── MeanField/Projection.lean
+
+└── Consensus/Basic.lean
+    ├── Consensus/Observation.lean
+    ├── Consensus/Decision.lean
+    ├── Consensus/Adversary.lean
+    ├── Consensus/TranscriptDistance.lean
+    ├── Consensus/InteractiveDistance.lean
+    ├── Consensus/PartitionFunction.lean
+    ├── Consensus/OrderParameter.lean
+    ├── Consensus/Gap.lean
+    ├── Consensus/Hamiltonian.lean
+    ├── Consensus/SafetyLiveness.lean
+    ├── Consensus/Quorum.lean
+    ├── Consensus/Thresholds.lean
+    ├── Consensus/UniversalityClasses.lean
+    ├── Consensus/CodingBridge.lean
+    ├── Consensus/CodingDistance.lean
+    ├── Consensus/Certificates.lean
+    └── Consensus/Examples/…
 ```
 
-Facade modules: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`.
+Facade modules: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`, `Gibbs/Consensus.lean`.
 Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic` + `LangevinFokkerPlanck`).
 
 ---
@@ -384,6 +408,26 @@ Defines the probability simplex and population states.
 
 **Typeclass context:** `[Fintype Q]` throughout.
 
+#### `MeanField/OrderParameter.lean`
+
+Lightweight order-parameter scaffolding for finite systems. Defines mean values, magnetization, and an `OrderParameter` wrapper.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `mean` | Finite average of reals |
+| def | `meanMagnetization` | Average of per-site observable |
+| structure | `OrderParameter` | State → ℝ observable |
+| def | `magnetizationParameter` | Packs magnetization as an order parameter |
+
+#### `MeanField/Universality.lean`
+
+Minimal universality-class vocabulary for macroscopic behavior.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| inductive | `UniversalityClass` | gapless / gapped / hybrid |
+| def | `classOf` | Classifier from gap/tunneling flags |
+
 #### `MeanField/Choreography.lean`
 
 Defines the choreographic specification for mean-field dynamics: a drift function on the simplex that is Lipschitz, conserves total probability, and points inward at boundaries.
@@ -493,6 +537,153 @@ Addresses the inverse problem: given a target drift, find nonneg rate functions 
 Four files implementing the mean-field Ising model. `TanhAnalysis.lean` analyzes m = tanh(βm). `Drift.lean` defines drift and proves conservation. `Glauber.lean` builds Glauber spin-flip dynamics. `PhaseTransition.lean` characterizes the phase transition at β = 1.
 
 ---
+
+### Consensus Layer
+
+The consensus layer specializes the physics-first machinery to executions, decisions, adversaries, and quorum thresholds.
+
+#### `Consensus/Basic.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `Process`, `Config`, `Execution` | Finite-horizon execution model |
+| def | `initialConfig` | Time-0 configuration |
+
+#### `Consensus/Observation.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `Observation` | Local view interface |
+| def | `Indistinguishable` | Honest-set indistinguishability |
+
+#### `Consensus/Decision.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `DecisionOut`, `DecisionFn` | Decider interface |
+| def | `decisionVector`, `macrostateOf` | Macrostates from executions |
+| def | `Agreement`, `Disagreement` | Safety predicates |
+
+#### `Consensus/Adversary.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `AdversaryClass` | Allowed transforms + budget |
+| def | `adversaryBall` | Reachable execution set |
+
+#### `Consensus/TranscriptDistance.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `hammingDistance`, `processDistance` | Static and interactive distances |
+| theorem | `*_self`, `*_comm`, `*_triangle` | Pseudometric properties |
+| def | `distanceBall` | Distance ball |
+| theorem | `adversaryBall_subset_distanceBall` | Budget ⇒ ball inclusion |
+
+#### `Consensus/InteractiveDistance.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `macrostateSet` | Executions realizing a macrostate |
+| def | `interactiveDistance` | Distance between macrostates |
+| theorem | `interactiveDistance_lower_bound` | Lifts pairwise lower bounds to the infimum |
+| theorem | `interactiveDistance_eq_zero_of_overlap` | Overlap ⇒ zero distance |
+
+#### `Consensus/PartitionFunction.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `partitionFunction`, `freeEnergy` | Execution-level specialization |
+| def | `partitionFunctionOn`, `freeEnergyOn` | Restrict to admissible executions |
+
+#### `Consensus/OrderParameter.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `magnetization` | Magnetization on configurations |
+| abbrev | `OrderParameter` | Consensus order parameter |
+
+#### `Consensus/Gap.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| abbrev | `energyGap`, `HasEnergyGap` | Physics-first gap |
+| def | `restrictedPartitionFunction` | Subset partition function |
+| theorem | `partitionFunctionOn_eq_restricted` | Subset partition function equality |
+| def | `freeEnergyGap` | Free-energy difference |
+| def | `IsSafe`, `HasSafetyGap` | Safety/gap predicates |
+| def | `HasFinality`, `HasProbabilisticFinality` | Finality notions |
+
+#### `Consensus/Hamiltonian.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `ConsensusHamiltonian` | Conflict/delay/fault decomposition |
+| def | `totalEnergy` | Summed Hamiltonian |
+| def | `forbiddenEnergy` | Assign `∞` to forbidden executions |
+| def | `energyWeight` | Boltzmann weight with `∞` mapped to 0 |
+| theorem | `energyWeight_forbidden`, `energyWeight_allowed` | Forbidden/allowed weight behavior |
+
+#### `Consensus/SafetyLiveness.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `IsSafeOn`, `IsLiveOn` | Safety/liveness over execution sets |
+| theorem | `safety_mono`, `liveness_mono` | Monotonicity under inclusion |
+
+#### `Consensus/Quorum.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `IsQuorum` | Quorum size predicate |
+| theorem | `quorum_intersection_lower` | General intersection bound |
+| theorem | `quorum_intersection_3f1` | 3f+1 specialization |
+
+#### `Consensus/Thresholds.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| theorem | `repetition_threshold` | 2f+1 threshold |
+| theorem | `quorum_threshold`, `quorum_gap_implies` | 3f+1 threshold |
+| def | `corruptionFraction` | Real-valued fraction `f / N` |
+| theorem | `static_fraction_bound`, `interactive_fraction_bound` | <1/2 and <1/3 bounds |
+
+#### `Consensus/UniversalityClasses.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `classOf`, `IsGapped` | Classifier + gap predicate |
+| def | `gapSequence`, `thermodynamicGap` | Thermodynamic limit scaffolding |
+| theorem | `thermodynamicGap_ge_of_eventually_ge` | Eventual lower bound ⇒ liminf lower bound |
+
+#### `Consensus/CodingBridge.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `Encoder`, `Decoder` | Block code interface |
+| def | `UniqueDecoding` | Radius decoding predicate |
+| def | `interactiveDistanceWord` | Non-interactive specialization |
+
+#### `Consensus/CodingDistance.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| instance | `hammingEnergyDistance` | EnergyDistance from Hamming distance |
+| def | `minimumDistance` | Min distance via infimum |
+| theorem | `unique_decoding_of_minDistance` | `t + t < d_min` uniqueness |
+| theorem | `energyGap_singleton_eq_dist` | Singleton gap = distance |
+
+#### `Consensus/Certificates.lean`
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `IsCertificate` | Quorum certifies a value |
+| theorem | `certificates_agree_of_intersection` | Intersection ⇒ agreement |
+| theorem | `certificates_agree_of_quorum_intersection` | Quorum bound ⇒ agreement |
+
+#### `Consensus/Examples/RepetitionCode.lean`
+
+Repetition code example with majority decoding and correction radius `⌊(N-1)/2⌋`.
 
 ### ContinuumField Layer
 

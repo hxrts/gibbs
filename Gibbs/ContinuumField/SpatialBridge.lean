@@ -1,19 +1,18 @@
 import Gibbs.ContinuumField.TimeBridge
-import Effects.Spatial
+import Gibbs.ContinuumField.SpatialMirror
 
-/-
-The Problem. We want to align the continuum-field space bridge with the
-Effects spatial type system. Effects provides `SpatialReq`, `Topology`, and
-`Satisfies`, but does not encode metric distances. We therefore connect
-colocation directly and make distance bounds a user-supplied requirement.
+/-!
+# Spatial bridge to Telltale
 
-The difficulty is ensuring that role locations in continuous space respect
-Effects' site assignment. We express this as an alignment predicate and
-use it to build a `SpatialBridge` instance.
+Aligns the continuum-field role-location map with Telltale's spatial type
+system. The `AlignedRoleLoc` predicate requires that roles assigned to the
+same site by the deployment topology receive the same continuous-space
+location. Given this alignment, `effectsSpatialBridge` constructs a
+`SpatialBridge` that translates Telltale's colocation and distance
+requirements into the continuum-field predicates `Colocated` and `Within`.
 
-Solution Structure.
-1. AlignedRoleLoc: role locations respect topo site equality
-2. effectsSpatialBridge: build a SpatialBridge with Effects types
+Uses the `SpatialMirror` definitions so the layer compiles without a direct
+Telltale dependency.
 -/
 
 namespace Gibbs.ContinuumField

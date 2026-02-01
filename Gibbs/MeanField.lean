@@ -6,6 +6,8 @@ import Gibbs.MeanField.ODE
 import Gibbs.MeanField.Existence
 import Gibbs.MeanField.Stability
 import Gibbs.MeanField.Projection
+import Gibbs.MeanField.OrderParameter
+import Gibbs.MeanField.Universality
 import Gibbs.MeanField.Examples.Ising
 
 /-

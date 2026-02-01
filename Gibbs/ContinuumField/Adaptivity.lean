@@ -1,19 +1,17 @@
 import Gibbs.ContinuumField.Basic
 import Gibbs.ContinuumField.Kernel
 
-/-
-The Problem. We need a way to state how kernels depend on fields (ρ, p, ω)
-with explicit regularity assumptions, and a place to describe deterministic
-kernel evolution rules.
+/-!
+# Adaptive kernel dependence
 
-The difficulty is staying abstract while still pinning down the contracts
-needed later for analysis. We introduce a field metric, a dependence structure,
-and a drift-style evolution rule.
+In many continuum models the interaction kernel is not fixed but evolves
+with the field state. For example, the effective coupling range may grow
+as density increases, or anisotropy may develop in response to polarization.
 
-Solution Structure.
-1. StateMetric: a metric-like structure on FieldState
-2. KernelDependence: kernel-of-state + Lipschitz regularity
-3. KernelDynamics: deterministic evolution equation for kernels
+`KernelDependence` formalizes this by pairing a kernel-of-state map with a
+Lipschitz regularity bound: small changes in `(ρ, p, ω)` produce small
+changes in the kernel. `KernelDynamics` provides a drift term for continuous-
+time kernel evolution, `dK/dt = drift(ρ, p, ω)`.
 -/
 
 namespace Gibbs.ContinuumField

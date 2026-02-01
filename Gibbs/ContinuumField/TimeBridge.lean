@@ -2,20 +2,19 @@ import Gibbs.Core
 import Gibbs.ContinuumField.Basic
 import Mathlib
 
-/-
-The Problem. We need a minimal bridge between Effects' discrete-step semantics
-and the continuum-field layer's space/time notions. The bridge should let us
-assign spatial locations to roles, and define sampling schedules that do not
-rely on remote clocks.
+/-!
+# Space and time bridge
 
-The difficulty is keeping this lightweight: Effects uses role/topology-level
-space, while the continuum field uses a continuous space X. We therefore model
-only a role-location map and a clock-independent sampling interface.
+Connects the discrete role-based world of choreographies to the continuous
+space-time of field theory. Each protocol role is assigned a location in a
+continuous space `X` via a `RoleLoc` map. Colocation and distance predicates
+express spatial constraints between roles.
 
-Solution Structure.
-1. SpaceModel: assign each Role a location in X
-2. Colocation and distance constraints
-3. SamplingSchedule and clock-independent sampling
+On the time side, a `SamplingSchedule` maps discrete step indices to real
+times, and a `RemoteClockSampler` abstracts over possible clock dependence.
+The key property is `ClockIndependent`: samplers built from a local schedule
+ignore remote clock inputs, ensuring that field observations depend only on
+the local sampling times.
 -/
 
 namespace Gibbs.ContinuumField

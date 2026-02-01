@@ -1,20 +1,18 @@
 import Gibbs.ContinuumField.Kernel
 import Mathlib.Data.Real.Basic
 
-/-
-The Problem. We want an optional closure interface that summarizes a full
-kernel field into a few low-order statistics without replacing the exact
-kernel semantics.
+/-!
+# Kernel closure approximation
 
-The difficulty is keeping the closure abstract while still stating a
-checkable approximation contract. We therefore define a summary structure,
-a pointwise approximation predicate, and a closure specification that includes
-a reconstruction map with a bound.
+A closure compresses a full kernel field into a few low-order descriptors
+(interaction range, anisotropy, total mass) and provides a reconstruction
+map back to kernel space. This is the continuum analogue of mean-field
+truncation: instead of tracking the full coupling function, we track only
+its leading moments.
 
-Solution Structure.
-1. KernelSummary: low-order descriptors (range, anisotropy, mass)
-2. KernelApprox: pointwise error bound for reconstructed kernels
-3. ClosureSpec: close + reconstruct with a soundness bound
+The `ClosureSpec` bundles the summarize/reconstruct pair with a uniform
+pointwise error bound, so any analysis using the reconstructed kernel
+carries an explicit approximation guarantee.
 -/
 
 namespace Gibbs.ContinuumField

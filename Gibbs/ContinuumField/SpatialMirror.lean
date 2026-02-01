@@ -1,19 +1,15 @@
 import Gibbs.Core
 
-/-
-The Problem. We need a lightweight mirror of the Effects spatial model so the
-continuum-field layer can compile without pulling the full Effects dependency.
-This module mirrors the key types and predicates we rely on: SpatialReq,
-Topology, and Satisfies. It is kept in sync with `Effects.Spatial` so the
-continuum-field layer can be compiled without importing Effects directly.
+/-!
+# Spatial model mirror
 
-The difficulty is staying aligned with Effects while keeping scope minimal.
-We therefore copy only the definitions needed by EffectsBridge.
-
-Solution Structure.
-1. SpatialReq language (colocation + reliability + capability)
-2. Topology with role-to-site assignment
-3. Satisfies judgment + boolean checker
+Lightweight replica of the Telltale/Effects spatial model so the continuum-
+field layer can compile without importing Effects directly. Mirrors three
+components: `SpatialReq` (a small language of spatial constraints like
+colocation, reliable edges, and site capabilities), `Topology` (a deployment
+descriptor mapping roles to sites), and `Satisfies` (a propositional
+judgment that a topology meets a requirement, with a decidable boolean
+counterpart). Kept in sync with `Effects.Spatial` by convention.
 -/
 
 namespace Gibbs.ContinuumField

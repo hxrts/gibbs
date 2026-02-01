@@ -2,20 +2,19 @@ import Gibbs.ContinuumField.Basic
 import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 
-/-
-The Problem. We need a kernel object that can live at the choreography level
-and project to local kernel fields. The kernel must be measurable, nonnegative,
-normalized, and (later) adaptive in a deterministic way.
+/-!
+# Interaction kernels
 
-The difficulty is stating these constraints without committing to a specific
-space or dynamics. We parameterize by a measurable space and expose only the
-properties we need for projection and operator semantics.
+A `GlobalKernel` `K(x, x')` encodes nonlocal interactions between spatial
+positions, analogous to the coupling matrix `J_ij` in a lattice spin model
+but defined on continuous space. It carries measurability, nonnegativity,
+normalization, and integrability guarantees.
 
-Solution Structure.
-1. KernelField: local displacement kernel
-2. GlobalKernel: full nonlocal kernel with properties
-3. KernelRule: deterministic adaptive update
-4. local: projection to a local kernel field
+The key operation is *projection to displacement coordinates*: at each point
+`x`, the local kernel field `ξ ↦ K(x, x+ξ)` captures how the interaction
+strength varies with displacement. A `KernelRule` makes this adaptive by
+allowing the kernel to depend deterministically on the current field state
+`(ρ, p, ω)`.
 -/
 
 namespace Gibbs.ContinuumField

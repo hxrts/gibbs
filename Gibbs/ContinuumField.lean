@@ -8,16 +8,11 @@ import Gibbs.ContinuumField.TimeBridge
 import Gibbs.ContinuumField.SpatialBridge
 import Gibbs.ContinuumField.Examples.Anisotropic2D
 
-/-
-The Problem. Provide a single entry point for the continuum-field layer so
-clients can import space/time, kernel, projection, and Effects alignment
-without enumerating individual files.
+/-!
+# Continuum field layer facade
 
-The difficulty is keeping the interface lightweight while preserving the
-structured file layout. This file serves as a curated facade.
-
-Solution Structure.
-1. Re-export core continuum-field modules
+Single entry point for the continuum-field layer. Importing this file brings
+in field primitives, interaction kernels, projection exactness, closure
+approximation, adaptive kernel dependence, space/time bridging, Telltale
+spatial alignment, and the 2D anisotropic example.
 -/
-
-/-! # Continuum Field Layer -/

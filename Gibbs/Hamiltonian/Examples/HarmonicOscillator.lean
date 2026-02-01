@@ -107,9 +107,9 @@ theorem underdamped_solves_ode (p : OscillatorParams) (h : p.isUnderdamped) (A B
           (HasDerivAt.add
             (HasDerivAt.const_mul _ (HasDerivAt.cos (hasDerivAt_mul_const _)))
             (HasDerivAt.const_mul _ (HasDerivAt.sin (hasDerivAt_mul_const _))))
-        using 1 <;> ring
+        using 1; ring_nf
     norm_num
-    ring
+    ring_nf
   ·
     convert
         HasDerivAt.add
@@ -133,11 +133,11 @@ theorem underdamped_solves_ode (p : OscillatorParams) (h : p.isUnderdamped) (A B
               (HasDerivAt.mul (hasDerivAt_const _ _)
                 (HasDerivAt.mul (hasDerivAt_const _ _)
                   (HasDerivAt.cos (hasDerivAt_mul_const _))))))
-        using 1 <;> ring
+        using 1; ring_nf
     norm_num
-    ring
+    ring_nf
   ·
-    ring
+    ring_nf
     rw [Real.sq_sqrt] <;> nlinarith
 
 /-- The critically damped solution satisfies the ODE. -/
@@ -150,7 +150,7 @@ theorem criticallyDamped_solves_ode (p : OscillatorParams) (h : p.isCriticallyDa
   norm_num [fderiv_deriv, mul_comm B, mul_comm p.γ]
   unfold deriv
   norm_num [fderiv_deriv]
-  ring
+  ring_nf
   exact fun t =>
     ⟨by
         convert
@@ -162,7 +162,7 @@ theorem criticallyDamped_solves_ode (p : OscillatorParams) (h : p.isCriticallyDa
                 (HasDerivAt.mul (hasDerivAt_id' t) (hasDerivAt_const _ _))
                 (HasDerivAt.exp
                   (HasDerivAt.mul (hasDerivAt_mul_const _) (hasDerivAt_const _ _))))
-          using 1 <;> norm_num <;> ring,
+          using 1; norm_num; ring_nf,
       by
         rw [show p.ω ^ 2 = p.γ ^ 2 / 4 by linarith]
         ring⟩
@@ -183,7 +183,7 @@ theorem overdamped_solves_ode (p : OscillatorParams) (h : p.isOverdamped) (A B :
         HasDerivAt.add
           (HasDerivAt.const_mul A (HasDerivAt.exp (hasDerivAt_mul_const _)))
           (HasDerivAt.const_mul B (HasDerivAt.exp (hasDerivAt_mul_const _)))
-        using 1 <;> ring
+        using 1; ring_nf
   ·
     convert
         HasDerivAt.add
@@ -195,7 +195,7 @@ theorem overdamped_solves_ode (p : OscillatorParams) (h : p.isOverdamped) (A B :
             (HasDerivAt.const_mul
               ((-p.γ - Real.sqrt (p.γ ^ 2 - p.ω ^ 2 * 4)) / 2)
               (HasDerivAt.exp (hasDerivAt_mul_const _))))
-        using 1 <;> ring
+        using 1; ring_nf
   ·
     grind
 
@@ -258,10 +258,11 @@ theorem criticallyDampedSolution_decays (p : OscillatorParams) (h : p.isCritical
           h_y.comp
             (Filter.tendsto_id.const_mul_atTop
               (show 0 < p.γ / 2 by linarith [p.γ_pos]))
-        using 2 <;> norm_num <;> ring
+        using 2; norm_num; ring_nf
       norm_num [mul_assoc, mul_comm p.γ, p.γ_pos.ne']
-    have := Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 1
-    convert this.const_mul (2 / p.γ) using 2 <;> ring
+    have hpow := Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 1
+    have hmul := hpow.const_mul (2 / p.γ)
+    simpa [pow_one, div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hmul
   set a : ℝ → ℝ :=
     fun t =>
       h_bound.choose * t * Real.exp (-p.γ * t / 2) +

@@ -3,18 +3,18 @@ import Gibbs.ContinuumField.Projection
 import Gibbs.ContinuumField.Closure
 import Mathlib.Data.Real.Basic
 
-/-
-The Problem. We want a small, concrete 2D example that illustrates an
-anisotropic local kernel profile, the exactness of global→local projection,
-and how a closure summarizes a kernel without changing the core operator.
+/-!
+# Anisotropic 2D kernel example
 
-The difficulty is keeping this example lightweight. We provide simple 2D
-vector helpers and reuse the exactness lemma and closure soundness contract.
+A concrete worked example on `ℝ²` illustrating the kernel machinery. The
+local kernel `K_x(ξ) = (1 + α·(axis·ξ)) / (1 + |ξ|²/range)` is a rational
+bump with directional bias controlled by an axis vector and strength `α`.
+This models an interaction that is stronger along a preferred direction,
+as seen in liquid crystals or oriented active matter.
 
-Solution Structure.
-1. 2D helper functions (dot, normSq)
-2. Anisotropic local kernel profile
-3. Example exactness + closure summaries
+The example demonstrates projection exactness (global and local operators
+agree by definition) and closure soundness (summarizing the kernel into
+range/anisotropy/mass descriptors and reconstructing gives a bounded error).
 -/
 
 namespace Gibbs.ContinuumField
