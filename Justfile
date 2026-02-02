@@ -66,25 +66,10 @@ summary:
 
 # Build the book after regenerating the summary
 book: summary
-    mdbook-mermaid install .
-    mv mermaid.min.js mermaid-init.js docs/ 2>/dev/null || true
-    mdbook build
-    rm -f docs/mermaid-init.js docs/mermaid.min.js
+    mdbook-mermaid install . > /dev/null 2>&1 || true && cp docs/mermaid-init-patch.js mermaid-init.js && mdbook build && rm -f mermaid-init.js mermaid.min.js
 
 # Serve locally with live reload
 serve: summary
     #!/usr/bin/env bash
-    trap 'echo -e "\nShutting down mdbook server..."; exit 0' INT
-
-    mdbook-mermaid install .
-    mv mermaid.min.js mermaid-init.js docs/ 2>/dev/null || true
-
-    for port in 3000 3001 3002 3003 3004 3005; do
-        if ! lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-            echo "Starting mdbook server on http://localhost:$port"
-            mdbook serve --port $port --open
-            exit 0
-        fi
-    done
-    echo "Error: All ports 3000-3005 are already in use" >&2
-    exit 1
+    trap 'rm -f mermaid-init.js mermaid.min.js' EXIT
+    mdbook-mermaid install . > /dev/null 2>&1 || true && cp docs/mermaid-init-patch.js mermaid-init.js && mdbook serve --open

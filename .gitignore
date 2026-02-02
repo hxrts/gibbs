@@ -19,8 +19,8 @@ result
 # mdbook
 docs/book/
 docs/SUMMARY.md
-docs/mermaid.min.js
-docs/mermaid-init.js
+mermaid.min.js
+mermaid-init.js
 
 # working
 work/
