@@ -1,6 +1,7 @@
 import Gibbs.MeanField.Basic
 import Gibbs.MeanField.Rules
 import Gibbs.MeanField.Choreography
+import Gibbs.MeanField.GlobalType
 import Gibbs.MeanField.LipschitzBridge
 import Gibbs.MeanField.ODE
 import Gibbs.MeanField.Existence

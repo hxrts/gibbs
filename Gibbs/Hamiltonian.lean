@@ -17,6 +17,7 @@ import Gibbs.Hamiltonian.NoseHoover
 import Gibbs.Hamiltonian.SymplecticFlow
 import Gibbs.Hamiltonian.Stochastic
 import Gibbs.Hamiltonian.Choreography
+import Gibbs.Hamiltonian.GlobalType
 import Gibbs.Hamiltonian.Stability
 import Gibbs.Hamiltonian.Examples.HarmonicOscillator
 import Gibbs.Hamiltonian.Examples.Langevin

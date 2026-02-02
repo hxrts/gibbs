@@ -4,6 +4,7 @@ import Gibbs.ContinuumField.Kernel
 import Gibbs.ContinuumField.Closure
 import Gibbs.ContinuumField.Projection
 import Gibbs.ContinuumField.EffectsIntegration
+import Gibbs.ContinuumField.GlobalType
 import Gibbs.ContinuumField.TimeBridge
 import Gibbs.ContinuumField.SpatialBridge
 import Gibbs.ContinuumField.CapacityBridge
