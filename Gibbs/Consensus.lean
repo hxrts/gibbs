@@ -15,6 +15,7 @@ import Gibbs.Consensus.CodingDistance
 import Gibbs.Consensus.Certificates
 import Gibbs.Consensus.Hamiltonian
 import Gibbs.Consensus.SafetyLiveness
+import Gibbs.Consensus.ChannelThreshold
 import Gibbs.Consensus.Examples.RepetitionCode
 import Gibbs.Consensus.Examples.QuorumBFT
 import Gibbs.Consensus.Examples.NakamotoSketch
@@ -27,5 +28,6 @@ Importing this file brings in the full stack: execution model, observation
 and decision maps, adversary model, transcript and interactive distances,
 partition functions, energy gaps, quorum systems, Byzantine thresholds,
 universality classes, the coding-theory bridge, and worked examples
-(repetition code, quorum BFT, Nakamoto sketch).
+(repetition code, quorum BFT, Nakamoto sketch), plus channel-capacity
+thresholds.
 -/

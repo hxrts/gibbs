@@ -7,6 +7,10 @@ import Gibbs.Hamiltonian.GaussianIntegrals
 import Gibbs.Hamiltonian.GeneralHamiltonian
 import Gibbs.Hamiltonian.Legendre
 import Gibbs.Hamiltonian.PartitionFunction
+import Gibbs.Hamiltonian.Entropy
+import Gibbs.Hamiltonian.EntropyBregman
+import Gibbs.Hamiltonian.Channel
+import Gibbs.Hamiltonian.ChannelSession
 import Gibbs.Hamiltonian.EnergyDistance
 import Gibbs.Hamiltonian.EnergyGap
 import Gibbs.Hamiltonian.NoseHoover
@@ -28,6 +32,7 @@ import Gibbs.Hamiltonian.Examples.LatticeMaxwell
 Single entry point for the Hamiltonian mechanics layer. Importing this file
 brings in phase space foundations, convex and general Hamiltonians, damped and
 symplectic dynamics, Legendre/Fenchel-Moreau duality, Lyapunov stability,
-Gibbs measures, the Nose-Hoover thermostat, stochastic Langevin dynamics,
-choreography, and all worked examples.
+Gibbs measures, entropy/KL divergence, channel capacity bridges, the
+Nose-Hoover thermostat, stochastic Langevin dynamics, choreography, and all
+worked examples.
 -/

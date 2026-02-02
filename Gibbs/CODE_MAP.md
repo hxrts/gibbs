@@ -6,6 +6,10 @@
 Gibbs/Session.lean
 │
 ├── Hamiltonian/Basic.lean
+│   ├── Hamiltonian/Entropy.lean
+│   ├── Hamiltonian/EntropyBregman.lean
+│   ├── Hamiltonian/Channel.lean
+│   ├── Hamiltonian/ChannelSession.lean
 │   ├── Hamiltonian/PartitionFunction.lean
 │   ├── Hamiltonian/EnergyDistance.lean
 │   ├── Hamiltonian/EnergyGap.lean
@@ -29,7 +33,8 @@ Gibbs/Session.lean
 │   ├── Hamiltonian/Stability.lean
 │   └── Hamiltonian/Stochastic/
 │       ├── Hamiltonian/Stochastic/Basic.lean
-│       └── Hamiltonian/Stochastic/LangevinFokkerPlanck.lean
+│       ├── Hamiltonian/Stochastic/LangevinFokkerPlanck.lean
+│       └── Hamiltonian/Stochastic/ChannelNoise.lean
 │
 ├── ContinuumField/Basic.lean
 │   ├── ContinuumField/Kernel.lean
@@ -39,8 +44,9 @@ Gibbs/Session.lean
 │   │   ├── ContinuumField/EffectsIntegration.lean
 │   │   └── ContinuumField/Examples/Anisotropic2D.lean
 │   └── ContinuumField/TimeBridge.lean
-│       └── ContinuumField/SpatialBridge.lean
-│           └── ContinuumField/SpatialMirror.lean
+│       ├── ContinuumField/SpatialBridge.lean
+│       │   └── ContinuumField/SpatialMirror.lean
+│       └── ContinuumField/CapacityBridge.lean
 │
 └── MeanField/Basic.lean
     ├── MeanField/OrderParameter.lean
@@ -72,19 +78,21 @@ Gibbs/Session.lean
     ├── Consensus/CodingBridge.lean
     ├── Consensus/CodingDistance.lean
     ├── Consensus/Certificates.lean
+    ├── Consensus/ChannelThreshold.lean
     └── Consensus/Examples/…
 ```
 
 Root facade: `Gibbs.lean` (imports all layers).
 Layer facades: `Gibbs/Hamiltonian.lean`, `Gibbs/MeanField.lean`, `Gibbs/ContinuumField.lean`, `Gibbs/Consensus.lean`.
-Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic` + `LangevinFokkerPlanck`).
+Stochastic facade: `Gibbs/Hamiltonian/Stochastic.lean` (re-exports `Basic`, `LangevinFokkerPlanck`, `ChannelNoise`).
 
 ---
 
 ## Proof Completeness
 
 **No `sorry` anywhere in the codebase.**
-All definitions and proofs are concrete.
+Several deep information-theoretic results are stated as axioms in the entropy
+and channel bridge files; all other proofs are concrete.
 
 ---
 
@@ -341,6 +349,75 @@ Bridges Hamiltonian mechanics with session-type choreography by partitioning pha
 **Assumptions on `HamiltonianChoreography n`:**
 - `roles_partition : ∀ i, ∃! r, i ∈ roles r` — every coordinate is owned by exactly one role
 
+#### `Hamiltonian/Entropy.lean`
+
+Finite Shannon entropy, KL divergence, marginals, and mutual information for discrete distributions.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `Distribution` | Finite pmf with nonneg + sum-one |
+| def | `shannonEntropy`, `binaryEntropy` | H(p), H₂(ε) |
+| def | `klDivergence` | D_KL(p‖q) |
+| def | `marginalFst`, `marginalSnd` | Joint marginals |
+| def | `condEntropy`, `mutualInfo` | H(X|Y), I(X;Y) |
+| def | `MarkovKernel`, `pushforward` | Markov kernel and induced joint |
+| theorem | `shannonEntropy_nonneg` | Termwise log bounds |
+| theorem | `shannonEntropy_deterministic` | Deterministic entropy = 0 |
+| theorem | `klDivergence_nonneg` | Gibbs inequality via log bound |
+| theorem | `klDivergence_eq_crossEntropy_sub` | Cross-entropy decomposition |
+| theorem | `condEntropy_le_entropy` | From mutual info nonneg |
+| axiom | `shannonEntropy_le_log_card` | Jensen/sharp bound |
+| axiom | `klDivergence_eq_zero_iff` | Equality case of Gibbs inequality |
+| axiom | `mutualInfo_nonneg` | Info-theoretic axiom |
+| theorem | `mutualInfo_symm` | Symmetry of mutual information |
+| axiom | `data_processing_inequality` | Markov processing cannot increase info |
+
+**Axioms**: Jensen bound, equality case, mutual info nonnegativity, and DPI are stated axiomatically.
+
+#### `Hamiltonian/EntropyBregman.lean`
+
+Bridges entropy to convex duality. Negative entropy generates KL as a Bregman divergence; its Legendre dual is log-sum-exp.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `negEntropyConfig` | Σ xᵢ log xᵢ on Config space |
+| def | `softmax` | exp-normalized distribution |
+| theorem | `softmax_nonneg`, `softmax_sum_one` | Valid distribution |
+| axiom | `negEntropyConfig_strictConvex_on_interior` | Strict convexity on simplex |
+| axiom | `kl_eq_bregman_negEntropy` | KL = Bregman(−H) |
+| axiom | `legendre_negEntropy_eq_logSumExp` | Dual = log-sum-exp |
+| axiom | `freeEnergy_eq_scaled_legendre_dual` | Free energy as Legendre dual |
+
+#### `Hamiltonian/Channel.lean`
+
+Discrete memoryless channels, induced distributions, and capacity (as a supremum of mutual information).
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `DMC` | Stochastic matrix W(y|x) |
+| def | `outputDist`, `jointDist` | Induced distributions |
+| def | `channelMutualInfo`, `channelCapacity` | I(p;W), sup over p |
+| def | `BSC` | Binary symmetric channel |
+| theorem | `jointDist_marginalFst`, `jointDist_marginalSnd` | Marginal recovery |
+| theorem | `channelCapacity_nonneg` | Nonnegativity (requires nonempty alphabets) |
+| axiom | `channelCapacity_le_log_input`, `channelCapacity_le_log_output` | Log bounds |
+| axiom | `bsc_capacity`, `bsc_capacity_half` | Closed-form BSC capacity |
+| axiom | `capacity_as_free_energy_dual` | Variational dual structure |
+
+#### `Hamiltonian/ChannelSession.lean`
+
+Session-typed channels with capacity constraints; projection as marginalization.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `TypedChannel`, `ProtocolStep` | Edge + channel + rate |
+| def | `TypedChannel.capacity` | Capacity of the edge channel |
+| def | `branchEntropy` | Branching information cost |
+| def | `ProtocolFeasible`, `bottleneck` | Feasibility predicate and detector |
+| def | `projectionInfoLoss`, `projectionInfoRetained` | H(Y|X) and I(X;Y) |
+| theorem | `projection_decomposition` | H(X,Y) = H(X) + H(Y|X) |
+| theorem | `projection_preserves_feasibility` | Trivial projection property |
+
 #### `Hamiltonian/PartitionFunction.lean`
 
 Finite-state partition function Z(beta) = sum_x exp(-beta H(x)) and free energy F = -(1/beta) log Z. Proves nonnegativity of Z, bounds relating Z to the minimum energy, and free-energy sandwiching: min H - (log |Omega|)/beta le F le min H.
@@ -418,6 +495,22 @@ Full Langevin dynamics with Fokker–Planck equation and proof that the Gibbs de
 | def | `Density n` | Time-dependent density ℝ → PhasePoint n → ℝ |
 | def | `FokkerPlanckRHS` | Fokker–Planck operator for Langevin dynamics |
 | def | `SatisfiesFokkerPlanck` | Density satisfies FP equation |
+
+#### `Hamiltonian/Stochastic/ChannelNoise.lean`
+
+Bridges noise variance to inverse temperature and information capacity.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `GaussianChannel` | Noise variance > 0 |
+| def | `gaussianCapacity` | (1/2) log(1 + P/σ²) |
+| def | `noiseToInvTemp`, `invTempToNoise` | σ² ↔ β conversion |
+| def | `langevinCapacity` | Capacity at FDR point |
+| theorem | `gaussianCapacity_nonneg` | P ≥ 0 ⇒ C ≥ 0 |
+| theorem | `gaussianCapacity_antitone_variance` | More noise ⇒ lower capacity |
+| theorem | `noiseToInvTemp_invTempToNoise` | Round-trip identity |
+| theorem | `capacity_monotone_invTemp` | Higher β ⇒ higher capacity |
+| theorem | `gaussianCapacity_monotone_power` | Monotone on nonnegative power |
 | def | `gibbsDensity` | ρ(q,p) ∝ exp(−(½‖p‖² + V(q))/kT) |
 | def | `gibbsStationary` | Gibbs as time-independent density |
 | theorem | `gibbs_is_stationary` | **Gibbs density is FP-stationary** |
@@ -802,6 +895,24 @@ The consensus layer specializes the physics-first machinery to executions, decis
 | theorem | `certificates_agree_of_intersection` | Intersection ⇒ agreement |
 | theorem | `certificates_agree_of_quorum_intersection` | Quorum bound ⇒ agreement |
 
+#### `Consensus/ChannelThreshold.lean`
+
+Coding-theoretic capacity as a consensus phase boundary.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `channelEnergyGap` | Capacity − rate |
+| theorem | `reliable_iff_positive_gap` | Linear inequality |
+| def | `avgErrorProb` | Average decoding error |
+| axiom | `blockChannel` | n-fold memoryless extension |
+| axiom | `channel_coding_achievability` | Shannon direct theorem |
+| axiom | `channel_coding_converse` | Shannon converse |
+| def | `CodingSafe` | Arbitrarily small error below capacity |
+| axiom | `codingSafe_iff_positive_gap` | Safety ↔ positive gap |
+| structure | `NoisyConsensus` | Corruption rate model |
+| theorem | `corruption_threshold_is_zero_capacity` | BSC ε=1/2 zero capacity |
+| axiom | `consensus_requires_positive_capacity` | ε<1/2 ⇒ capacity > 0 |
+
 #### `Consensus/Examples/RepetitionCode.lean`
 
 Repetition code: encode one bit as N copies, decode by majority vote. Corrects up to floor((N-1)/2) errors. This is the simplest gapped phase, equivalent to the Ising ferromagnet and quorum consensus.
@@ -910,6 +1021,21 @@ Bridges continuous time and discrete steps. Proves constructed samplers are cloc
 | structure | `SpatialBridge` | Role locations + topology + soundness |
 | theorem | `satisfies_colocated`, `satisfies_within` | Unpack bridge soundness |
 
+#### `ContinuumField/CapacityBridge.lean`
+
+Distance-dependent channel capacities for spatially embedded roles.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `SpatialChannelModel` | Signal power, noise(d), monotone noise |
+| def | `spatialCapacity`, `roleCapacity` | Capacity by distance/role pair |
+| theorem | `spatialCapacity_antitone` | Distance ↑ ⇒ capacity ↓ |
+| theorem | `spatialCapacity_pos` | Positive capacity at finite distance |
+| theorem | `colocated_max_capacity` | Colocated ⇒ distance 0 |
+| theorem | `within_capacity_bound` | Within d ⇒ capacity ≥ C(d) |
+| structure | `SpatialProtocol` | Role locations + rates |
+| def | `SpatialProtocol.isFeasible` | Per-edge capacity constraint |
+
 #### `ContinuumField/SpatialBridge.lean`
 
 Adapter from the Effects spatial mirror to the continuum SpatialBridge.
@@ -960,6 +1086,9 @@ Self-contained mirror of the Effects system's spatial types (`Site`, `RoleName`,
 | FP substitution + fluctuation-dissipation | LangevinFokkerPlanck | Gibbs stationarity under σ² = 2γkT |
 | `Finset.sum_nonneg` + `exp_nonneg` | PartitionFunction | Z nonnegativity, free-energy bounds |
 | `sInf_le` with witness | EnergyGap | Gap upper bound from any cross-set pair |
+| `log_le_sub_one_of_pos` | Entropy | Gibbs inequality (KL ≥ 0) |
+| `one_div_le_one_div_of_le` | ChannelNoise, CapacityBridge | Antitone in variance/distance |
+| `field_simp` | EntropyBregman, ChannelThreshold | Softmax normalization, block-rate algebra |
 | MVT + monotonicity | TanhAnalysis | tanh 1-Lipschitz, strict sublinearity |
 | IVT on residual | PhaseTransition | Ferromagnetic bistability |
 | `omega` | QuorumBFT, Thresholds | Nat arithmetic for quorum intersection and thresholds |
