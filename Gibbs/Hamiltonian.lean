@@ -11,6 +11,8 @@ import Gibbs.Hamiltonian.Entropy
 import Gibbs.Hamiltonian.EntropyBregman
 import Gibbs.Hamiltonian.Channel
 import Gibbs.Hamiltonian.ChannelSession
+import Gibbs.Hamiltonian.Coding
+import Gibbs.Axioms
 import Gibbs.Hamiltonian.EnergyDistance
 import Gibbs.Hamiltonian.EnergyGap
 import Gibbs.Hamiltonian.NoseHoover
