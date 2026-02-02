@@ -9,7 +9,7 @@ build-dir = "docs/book"
 
 [output.html]
 preferred-dark-theme = "rust"
-additional-js = ["mermaid.min.js", "mermaid-init.js"]
+additional-js = ["docs/mathjax-config.js", "mermaid.min.js", "mermaid-init.js"]
 mathjax-support = true
 
 [output.html.playground]
