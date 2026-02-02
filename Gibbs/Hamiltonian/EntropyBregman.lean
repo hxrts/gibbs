@@ -388,10 +388,17 @@ axiom kl_nonneg_via_bregman (n : ℕ) (p q : Fin n → ℝ)
 
 /-! ## Legendre Dual of Negative Entropy -/
 
-/-- The Legendre dual of negative entropy is log-sum-exp. -/
-axiom legendre_negEntropy_eq_logSumExp (n : ℕ) [NeZero n] (θ : Config n) :
+/-- The Legendre dual of negative entropy is log-sum-exp.
+
+    PROVIDED SOLUTION
+    The upper bound follows from Jensen's inequality: for any distribution x
+    on the simplex, Σ xᵢ θᵢ - Σ xᵢ log xᵢ ≤ log(Σ exp θᵢ). The lower bound
+    is attained at the softmax distribution xᵢ = exp(θᵢ)/Σ exp(θⱼ), where
+    direct computation gives ⟪θ, x⟫ + H(x) = log(Σ exp θᵢ). -/
+theorem legendre_negEntropy_eq_logSumExp (n : ℕ) [NeZero n] (θ : Config n) :
     legendre (negEntropyConfig n) θ =
-      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i))
+      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
+  sorry
 
 /-- Softmax distribution. -/
 def softmax (n : ℕ) (θ : Fin n → ℝ) : Fin n → ℝ :=

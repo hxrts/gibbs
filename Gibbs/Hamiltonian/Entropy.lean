@@ -61,11 +61,6 @@ theorem shannonEntropy_nonneg {α : Type*} [Fintype α]
       (Finset.sum_nonpos (s := (Finset.univ : Finset α)) (fun a _ => hterm a))
   linarith
 
-/-- H(p) ≤ log |α| (Shannon bound). -/
-axiom shannonEntropy_le_log_card {α : Type*} [Fintype α] [Nonempty α]
-    (p : α → ℝ) (hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1) :
-    shannonEntropy p ≤ Real.log (Fintype.card α)
-
 /-- Entropy of a deterministic distribution is zero. -/
 theorem shannonEntropy_deterministic {α : Type*} [Fintype α]
     (p : α → ℝ) (a₀ : α) (hp : ∀ a, p a = if a = a₀ then 1 else 0) :
@@ -144,13 +139,150 @@ theorem klDivergence_nonneg {α : Type*} [Fintype α]
     linarith [hsum, hsum_pq]
   simpa [klDivergence] using this
 
+/-- D_KL(p ‖ uniform) = log|α| - H(p). -/
+private theorem kl_uniform_eq {α : Type*} [Fintype α] [Nonempty α]
+    (p : α → ℝ) (_hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1) :
+    klDivergence p (fun _ => 1 / Fintype.card α) =
+      Real.log (Fintype.card α) - shannonEntropy p := by
+  unfold klDivergence shannonEntropy
+  have hcard : (0 : ℝ) < Fintype.card α := by exact_mod_cast Fintype.card_pos
+  have hu_ne : (1 : ℝ) / Fintype.card α ≠ 0 := ne_of_gt (div_pos one_pos hcard)
+  -- p(a)/(1/|α|) = p(a)*|α|, so log(p(a)/(1/|α|)) = log(p(a)) + log|α|
+  -- Σ p·log(p·|α|) = Σ p·log p + log|α|·Σ p = Σ p·log p + log|α|
+  -- RHS = log|α| - (-Σ p·log p) = log|α| + Σ p·log p
+  rw [sub_neg_eq_add]
+  have hterms : ∀ a, (if p a = 0 then 0 else p a * Real.log (p a / (1 / ↑(Fintype.card α)))) =
+      (if p a = 0 then 0 else p a * Real.log (p a)) +
+      p a * Real.log (Fintype.card α) := by
+    intro a
+    by_cases hp : p a = 0
+    · simp [hp]
+    · simp only [hp, ↓reduceIte]
+      rw [div_div_eq_mul_div, div_one,
+        Real.log_mul hp (ne_of_gt hcard)]
+      ring
+  simp_rw [hterms]
+  rw [Finset.sum_add_distrib, ← Finset.sum_mul, hp_sum, one_mul, add_comm]
+
+/-- H(p) ≤ log |α| (Shannon bound) via D_KL(p ‖ uniform) ≥ 0. -/
+theorem shannonEntropy_le_log_card {α : Type*} [Fintype α] [Nonempty α]
+    (p : α → ℝ) (hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1) :
+    shannonEntropy p ≤ Real.log (Fintype.card α) := by
+  have hcard : (0 : ℝ) < Fintype.card α := by exact_mod_cast Fintype.card_pos
+  have hunif_nn : ∀ a : α, (0 : ℝ) ≤ 1 / Fintype.card α :=
+    fun _ => div_nonneg zero_le_one (le_of_lt hcard)
+  have hunif_sum : ∑ _ : α, (1 : ℝ) / Fintype.card α = 1 := by
+    simp [Finset.card_univ]
+  have habs : ∀ a : α, p a ≠ 0 → (1 : ℝ) / Fintype.card α ≠ 0 :=
+    fun _ _ => ne_of_gt (div_pos one_pos hcard)
+  have hkl := klDivergence_nonneg p _ hp_nn hp_sum hunif_nn hunif_sum habs
+  rw [kl_uniform_eq p hp_nn hp_sum] at hkl
+  linarith
+
+/-- D_KL(p‖p) = 0: KL divergence of a distribution with itself vanishes. -/
+private theorem klDivergence_self_eq_zero {α : Type*} [Fintype α]
+    (p : α → ℝ) (_hp_nn : ∀ a, 0 ≤ p a) :
+    klDivergence p p = 0 := by
+  classical
+  -- each term is p(a) * log(p(a)/p(a)) = p(a) * log 1 = 0
+  unfold klDivergence
+  refine Finset.sum_eq_zero ?_
+  intro a _
+  by_cases hpa : p a = 0
+  · simp [hpa]
+  · simp [hpa]
+
+/-- Each KL term satisfies p(a)*log(p(a)/q(a)) ≥ p(a) - q(a). -/
+private theorem kl_term_ge_diff {α : Type*} [Fintype α]
+    (p q : α → ℝ) (hp_nn : ∀ a, 0 ≤ p a) (hq_nn : ∀ a, 0 ≤ q a)
+    (habs : ∀ a, p a ≠ 0 → q a ≠ 0) (a : α) :
+    p a - q a ≤ (if p a = 0 then 0 else p a * Real.log (p a / q a)) := by
+  classical
+  by_cases hpa : p a = 0
+  · simp [hpa, hq_nn a]
+  · -- log(q/p) ≤ q/p - 1, multiply by -p to flip
+    have hpa_pos : 0 < p a := lt_of_le_of_ne (hp_nn a) (Ne.symm hpa)
+    have hq_pos : 0 < q a := lt_of_le_of_ne (hq_nn a) (Ne.symm (habs a hpa))
+    have hlog : Real.log (q a / p a) ≤ q a / p a - 1 :=
+      Real.log_le_sub_one_of_pos (div_pos hq_pos hpa_pos)
+    have hmul : -p a * Real.log (q a / p a) ≥ p a - q a := by
+      have hrhs : -p a * (q a / p a - 1) = p a - q a := by field_simp; ring
+      linarith [mul_le_mul_of_nonpos_left hlog (by linarith : -p a ≤ 0)]
+    -- -p*log(q/p) = p*log(p/q)
+    have hflip : -p a * Real.log (q a / p a) = p a * Real.log (p a / q a) := by
+      rw [Real.log_div (habs a hpa) hpa, Real.log_div hpa (habs a hpa)]; ring
+    simp only [hpa, ↓reduceIte]
+    linarith
+
+/-- When D_KL = 0, each KL term equals p(a) - q(a). -/
+private theorem kl_term_eq_diff_of_zero {α : Type*} [Fintype α]
+    (p q : α → ℝ) (hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1)
+    (hq_nn : ∀ a, 0 ≤ q a) (hq_sum : ∑ a, q a = 1)
+    (habs : ∀ a, p a ≠ 0 → q a ≠ 0)
+    (hkl : klDivergence p q = 0) (a : α) :
+    (if p a = 0 then 0 else p a * Real.log (p a / q a)) = p a - q a := by
+  classical
+  -- Σ terms = 0, Σ(p-q) = 0, each term ≥ p-q, so each gap = 0
+  have hkl' : ∑ b, (if p b = 0 then 0 else p b * Real.log (p b / q b)) = 0 := by
+    simpa [klDivergence] using hkl
+  have hpq : ∑ b, (p b - q b) = 0 := by
+    have : ∑ b, p b - ∑ b, q b = 0 := by rw [hp_sum, hq_sum]; ring
+    linarith [Finset.sum_sub_distrib (f := p) (g := q) (s := Finset.univ)]
+  have hdiff :
+      ∑ b, ((if p b = 0 then 0 else p b * Real.log (p b / q b)) - (p b - q b)) = 0 := by
+    linarith [Finset.sum_sub_distrib
+      (f := fun b => if p b = 0 then 0 else p b * Real.log (p b / q b))
+      (g := fun b => p b - q b) (s := Finset.univ)]
+  have hnn : ∀ b, 0 ≤
+      (if p b = 0 then 0 else p b * Real.log (p b / q b)) - (p b - q b) :=
+    fun b => by linarith [kl_term_ge_diff p q hp_nn hq_nn habs b]
+  have hzero := (Finset.sum_eq_zero_iff_of_nonneg (fun b _ => hnn b)).mp hdiff
+  linarith [hzero a (Finset.mem_univ a)]
+
+/-- D_KL(p‖q) = 0 implies p = q pointwise. -/
+private theorem klDivergence_eq_zero_imp_eq {α : Type*} [Fintype α]
+    (p q : α → ℝ) (hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1)
+    (hq_nn : ∀ a, 0 ≤ q a) (hq_sum : ∑ a, q a = 1)
+    (habs : ∀ a, p a ≠ 0 → q a ≠ 0)
+    (hkl : klDivergence p q = 0) : p = q := by
+  classical
+  funext a
+  have hterm := kl_term_eq_diff_of_zero p q hp_nn hp_sum hq_nn hq_sum habs hkl a
+  by_cases hpa : p a = 0
+  · -- term = 0 = p(a) - q(a), so q(a) = 0 = p(a)
+    simp [hpa] at hterm; linarith
+  · -- p(a)*log(p(a)/q(a)) = p(a) - q(a) implies p = q
+    have hpa_pos : 0 < p a := lt_of_le_of_ne (hp_nn a) (Ne.symm hpa)
+    have hq_pos : 0 < q a := lt_of_le_of_ne (hq_nn a) (Ne.symm (habs a hpa))
+    simp only [hpa, ↓reduceIte] at hterm
+    -- divide both sides by p(a) > 0: log(p/q) = 1 - q/p
+    have hlog_pq : Real.log (p a / q a) = 1 - q a / p a := by
+      have h := div_eq_div_iff (ne_of_gt hpa_pos) (ne_of_gt hpa_pos) |>.mpr (by linarith)
+      field_simp at hterm ⊢; linarith
+    -- equivalently log(q/p) = q/p - 1
+    have hlog_qp : Real.log (q a / p a) = q a / p a - 1 := by
+      rw [Real.log_div hpa (habs a hpa)] at hlog_pq
+      rw [Real.log_div (habs a hpa) hpa]; linarith
+    -- equality in log x ≤ x - 1 iff x = 1
+    -- log(q/p) = q/p - 1 with q/p > 0 forces q/p = 1 (strict ineq for x ≠ 1)
+    have hqp : q a / p a = 1 := by
+      by_contra hne
+      exact absurd hlog_qp (ne_of_lt (Real.log_lt_sub_one_of_pos
+        (div_pos hq_pos hpa_pos) hne))
+    rw [div_eq_one_iff_eq (ne_of_gt hpa_pos)] at hqp; linarith
+
 /-- D_KL(p‖q) = 0 ↔ p = q. -/
-axiom klDivergence_eq_zero_iff {α : Type*} [Fintype α]
+theorem klDivergence_eq_zero_iff {α : Type*} [Fintype α]
     (p q : α → ℝ)
     (hp_nn : ∀ a, 0 ≤ p a) (hp_sum : ∑ a, p a = 1)
     (hq_nn : ∀ a, 0 ≤ q a) (hq_sum : ∑ a, q a = 1)
     (habs : ∀ a, p a ≠ 0 → q a ≠ 0) :
-    klDivergence p q = 0 ↔ p = q
+    klDivergence p q = 0 ↔ p = q := by
+  constructor
+  · -- D_KL = 0 → p = q
+    exact klDivergence_eq_zero_imp_eq p q hp_nn hp_sum hq_nn hq_sum habs
+  · -- p = q → D_KL = 0
+    intro heq; subst heq; exact klDivergence_self_eq_zero p hp_nn
 
 /-- KL divergence decomposes as cross-entropy minus entropy. -/
 theorem klDivergence_eq_crossEntropy_sub {α : Type*} [Fintype α]
@@ -200,11 +332,157 @@ def marginalSnd {α β : Type*} [Fintype α] [Fintype β] (pXY : α × β → �
 def mutualInfo {α β : Type*} [Fintype α] [Fintype β] (pXY : α × β → ℝ) : ℝ :=
   shannonEntropy (marginalFst pXY) + shannonEntropy (marginalSnd pXY) - shannonEntropy pXY
 
-/-- Mutual information is nonnegative. -/
-axiom mutualInfo_nonneg {α β : Type*} [Fintype α] [Fintype β]
+/-- Product of marginals is nonneg. -/
+private theorem prodMarginals_nonneg {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (ab : α × β) :
+    0 ≤ marginalFst pXY ab.1 * marginalSnd pXY ab.2 := by
+  -- each marginal is a sum of nonneg terms
+  exact mul_nonneg
+    (Finset.sum_nonneg fun b _ => h_nn (ab.1, b))
+    (Finset.sum_nonneg fun a _ => h_nn (a, ab.2))
+
+/-- Product of marginals sums to 1. -/
+private theorem prodMarginals_sum_one {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_sum : ∑ ab, pXY ab = 1) :
+    ∑ ab : α × β, marginalFst pXY ab.1 * marginalSnd pXY ab.2 = 1 := by
+  -- Σ_{a,b} pX(a)*pY(b) = (Σ_a pX(a)) * (Σ_b pY(b)) = 1 * 1
+  have hfst : ∑ a, marginalFst pXY a = 1 := by
+    simp only [marginalFst]
+    rw [show ∑ a, ∑ b, pXY (a, b) = ∑ ab : α × β, pXY ab from
+      (Fintype.sum_prod_type _).symm]
+    exact h_sum
+  have hsnd : ∑ b, marginalSnd pXY b = 1 := by
+    simp only [marginalSnd]
+    rw [show ∑ b, ∑ a, pXY (a, b) = ∑ ab : α × β, pXY ab from
+      (Fintype.sum_prod_type_right _).symm]
+    exact h_sum
+  -- (Σ_a pX(a)) * (Σ_b pY(b)) = 1*1 = 1
+  have hprod : ∑ ab : α × β, marginalFst pXY ab.1 * marginalSnd pXY ab.2 =
+      (∑ a, marginalFst pXY a) * (∑ b, marginalSnd pXY b) := by
+    have h1 : ∑ ab : α × β, marginalFst pXY ab.1 * marginalSnd pXY ab.2 =
+        ∑ a, ∑ b, marginalFst pXY a * marginalSnd pXY b := by
+      rw [← Finset.univ_product_univ, Finset.sum_product]
+    rw [h1]; simp_rw [← Finset.mul_sum]; rw [← Finset.sum_mul]
+  rw [hprod, hfst, hsnd, one_mul]
+
+/-- Absolute continuity: pXY(a,b) > 0 implies pX(a)*pY(b) > 0. -/
+private theorem prodMarginals_abs_cont {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (ab : α × β) :
+    pXY ab ≠ 0 → marginalFst pXY ab.1 * marginalSnd pXY ab.2 ≠ 0 := by
+  intro hne
+  -- pXY(a,b) > 0 ⇒ pX(a) ≥ pXY(a,b) > 0 and pY(b) ≥ pXY(a,b) > 0
+  have hpos : 0 < pXY ab := lt_of_le_of_ne (h_nn ab) (Ne.symm hne)
+  have hfst : 0 < marginalFst pXY ab.1 :=
+    lt_of_lt_of_le hpos (Finset.single_le_sum
+      (f := fun b => pXY (ab.1, b)) (fun _ _ => h_nn _) (Finset.mem_univ ab.2))
+  have hsnd : 0 < marginalSnd pXY ab.2 :=
+    lt_of_lt_of_le hpos (Finset.single_le_sum
+      (f := fun a => pXY (a, ab.2)) (fun _ _ => h_nn _) (Finset.mem_univ ab.1))
+  exact ne_of_gt (mul_pos hfst hsnd)
+
+/-- Rewrite marginal entropy sum as a double sum with joint weights.
+    Σ_a [if pX(a)=0 then 0 else pX(a)*log(pX(a))] =
+    Σ_{a,b} [if pXY(a,b)=0 then 0 else pXY(a,b)*log(pX(a))]. -/
+private theorem entropy_margFst_as_joint {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    (∑ a, if marginalFst pXY a = 0 then 0 else marginalFst pXY a *
+      Real.log (marginalFst pXY a)) =
+    ∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab *
+      Real.log (marginalFst pXY ab.1) := by
+  classical
+  -- rewrite RHS as double sum
+  have h_rhs : (∑ ab : α × β, if pXY ab = 0 then 0
+      else pXY ab * Real.log (marginalFst pXY ab.1)) =
+      ∑ a, ∑ b, (if pXY (a, b) = 0 then 0
+      else pXY (a, b) * Real.log (marginalFst pXY a)) := by
+    rw [← Finset.univ_product_univ, Finset.sum_product]
+  rw [h_rhs]
+  refine Finset.sum_congr rfl fun a _ => ?_
+  by_cases hpa : marginalFst pXY a = 0
+  · -- pX(a) = 0 ⇒ all pXY(a,b) = 0
+    have hzero : ∀ b, pXY (a, b) = 0 := fun b =>
+      (Finset.sum_eq_zero_iff_of_nonneg (fun b _ => h_nn (a, b))).mp
+        (by simp [marginalFst] at hpa; exact hpa) b (Finset.mem_univ b)
+    simp [hpa, hzero]
+  · -- pX(a) > 0: Σ_b pXY(a,b)*log(pX(a)) = pX(a)*log(pX(a))
+    conv_rhs => rw [show ∑ b, (if pXY (a, b) = 0 then 0
+      else pXY (a, b) * Real.log (marginalFst pXY a)) =
+      ∑ b, pXY (a, b) * Real.log (marginalFst pXY a) from by
+        refine Finset.sum_congr rfl fun b _ => ?_
+        by_cases h : pXY (a, b) = 0 <;> simp [h]]
+    rw [← Finset.sum_mul]
+    unfold marginalFst at hpa
+    split
+    · contradiction
+    · rfl
+
+/-- Same rewrite for the second marginal. -/
+private theorem entropy_margSnd_as_joint {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    (∑ b, if marginalSnd pXY b = 0 then 0 else marginalSnd pXY b *
+      Real.log (marginalSnd pXY b)) =
+    ∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab *
+      Real.log (marginalSnd pXY ab.2) := by
+  classical
+  have h_rhs : (∑ ab : α × β, if pXY ab = 0 then 0
+      else pXY ab * Real.log (marginalSnd pXY ab.2)) =
+      ∑ b, ∑ a, (if pXY (a, b) = 0 then 0
+      else pXY (a, b) * Real.log (marginalSnd pXY b)) := by
+    rw [← Finset.univ_product_univ, Finset.sum_product_right]
+  rw [h_rhs]
+  refine Finset.sum_congr rfl fun b _ => ?_
+  by_cases hpb : marginalSnd pXY b = 0
+  · have hzero : ∀ a, pXY (a, b) = 0 := fun a =>
+      (Finset.sum_eq_zero_iff_of_nonneg (fun a _ => h_nn (a, b))).mp
+        (by simp [marginalSnd] at hpb; exact hpb) a (Finset.mem_univ a)
+    simp [hpb, hzero]
+  · conv_rhs => rw [show ∑ a, (if pXY (a, b) = 0 then 0
+      else pXY (a, b) * Real.log (marginalSnd pXY b)) =
+      ∑ a, pXY (a, b) * Real.log (marginalSnd pXY b) from by
+        refine Finset.sum_congr rfl fun a _ => ?_
+        by_cases h : pXY (a, b) = 0 <;> simp [h]]
+    rw [← Finset.sum_mul]
+    unfold marginalSnd at hpb
+    split
+    · contradiction
+    · rfl
+
+/-- Mutual information equals KL divergence from joint to product of marginals. -/
+private theorem mutualInfo_eq_klDivergence {α β : Type*} [Fintype α] [Fintype β]
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    mutualInfo pXY = klDivergence pXY
+      (fun ab => marginalFst pXY ab.1 * marginalSnd pXY ab.2) := by
+  classical
+  unfold mutualInfo shannonEntropy klDivergence
+  rw [entropy_margFst_as_joint pXY h_nn, entropy_margSnd_as_joint pXY h_nn]
+  -- goal: -Σ[pXY·log pX] + -Σ[pXY·log pY] - -Σ[pXY·log pXY] = Σ[pXY·log(pXY/(pX·pY))]
+  -- combine into single sum
+  rw [sub_neg_eq_add]
+  simp only [← Finset.sum_neg_distrib (f := fun ab =>
+    if pXY ab = 0 then 0 else pXY ab * Real.log (marginalFst pXY ab.1)),
+    ← Finset.sum_neg_distrib (f := fun ab =>
+    if pXY ab = 0 then 0 else pXY ab * Real.log (marginalSnd pXY ab.2)),
+    ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl fun ab _ => ?_
+  by_cases h : pXY ab = 0
+  · simp [h]
+  · have hprod := prodMarginals_abs_cont pXY h_nn ab h
+    simp only [h, ↓reduceIte]
+    have hfst : marginalFst pXY ab.1 ≠ 0 := left_ne_zero_of_mul hprod
+    have hsnd : marginalSnd pXY ab.2 ≠ 0 := right_ne_zero_of_mul hprod
+    rw [Real.log_div h hprod, Real.log_mul hfst hsnd]
+    ring
+
+/-- Mutual information is nonnegative: I(X;Y) = D_KL(p_XY ‖ p_X ⊗ p_Y) ≥ 0. -/
+theorem mutualInfo_nonneg {α β : Type*} [Fintype α] [Fintype β]
     (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab)
     (h_sum : ∑ ab, pXY ab = 1) :
-    0 ≤ mutualInfo pXY
+    0 ≤ mutualInfo pXY := by
+  rw [mutualInfo_eq_klDivergence pXY h_nn]
+  exact klDivergence_nonneg pXY _ h_nn h_sum
+    (fun ab => prodMarginals_nonneg pXY h_nn ab)
+    (prodMarginals_sum_one pXY h_sum)
+    (fun ab => prodMarginals_abs_cont pXY h_nn ab)
 
 /-! ## Conditional Entropy -/
 
