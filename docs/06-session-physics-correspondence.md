@@ -1,6 +1,16 @@
 # The Session-Physics Correspondence
 
-This document articulates the correspondence between session-type guarantees and physical properties in Gibbs. Session types provide structural guarantees about protocol execution. Each guarantee has a direct physical interpretation in terms of dynamics, conservation, and locality. For the physical layers, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md), [Mean-Field Dynamics](04-mean-field-dynamics.md), and [Consensus as Statistical Mechanics](06-consensus-statistical-mechanics.md).
+This document articulates the correspondence between session-type guarantees and physical properties in Gibbs. For the physical layers, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field-dynamics.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
+
+## Why Session Types and Physics Correspond
+
+Session types describe how distributed processes communicate: who sends what to whom, in what order, and with what guarantees. Physical systems describe how coupled components evolve: which degrees of freedom interact, through what forces, and subject to what conservation laws.
+
+These descriptions align because both are fundamentally about structured interaction between parts. A session type says "role A sends a position to role B, then B sends a force back." A coupled ODE says "subsystem A's position determines the force on subsystem B, and vice versa." The communication pattern *is* the coupling structure.
+
+Session types provide three formal guarantees (progress, well-formedness, and erasure), each one has a precise physical meaning. Progress means the system of equations always has a solution (no deadlock corresponds to no blowup). Well-formedness means conservation laws are preserved at every interaction (type compatibility corresponds to dimensional consistency). Erasure means uncoupled components evolve independently (non-participation corresponds to locality).
+
+The power of this correspondence is that proofs in one domain transfer to the other. A session-type progress proof is a global existence theorem. A conservation law proof is a well-formedness check. The formal machinery of session types, which was designed for reasoning about message-passing programs, turns out to be equally natural for reasoning about physical dynamics.
 
 ## The Three Guarantees
 

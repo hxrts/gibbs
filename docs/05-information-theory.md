@@ -1,6 +1,6 @@
 # Information Theory and Channels
 
-This document covers the information-theoretic machinery in Gibbs. Shannon entropy, KL divergence, and channel capacity provide the language for reasoning about communication under noise. These concepts connect to convex duality through the entropy-Bregman correspondence, and to consensus through the coding-theoretic bridge. See [Convex Duality and Bregman Divergence](03-convex-duality.md) for the duality perspective and [Consensus as Statistical Mechanics](06-consensus-statistical-mechanics.md) for the application to agreement protocols.
+This document covers the information-theoretic machinery in Gibbs. Shannon entropy, KL divergence, and channel capacity provide the language for reasoning about communication under noise. These concepts connect to convex duality through the entropy-Bregman correspondence, and to consensus through the coding-theoretic bridge. See [Convex Duality and Bregman Divergence](03-convex-duality.md) for the duality perspective and [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md) for the application to agreement protocols.
 
 ## Entropy and KL Divergence
 

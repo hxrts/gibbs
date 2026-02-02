@@ -1,6 +1,18 @@
 # Consensus as Statistical Mechanics
 
-This document presents the synthesis at the heart of Gibbs: consensus protocols are statistical-mechanical systems. Agreement is an ordered phase. Finality is an energy gap. Byzantine thresholds are phase boundaries. For the physical foundations, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field-dynamics.md). For the information-theoretic bridge, see [Information Theory and Channels](05-information-theory.md).
+This document presents the synthesis at the heart of Gibbs: consensus protocols are statistical-mechanical systems. For the physical foundations, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field-dynamics.md). For the information-theoretic bridge, see [Information Theory and Channels](05-information-theory.md).
+
+## The Analogy
+
+Consider a group of people trying to agree on a decision. Each person has an opinion and can talk to their neighbors, influencing them. The question is whether the group converges to a shared decision.
+
+Now consider a magnet cooling from high temperature. Each atom has a spin (up or down) and interacts with its neighbors. Thermal noise randomly flips spins. The question is whether the spins align into a coherent magnetization.
+
+These problems are analogous. In both cases, local interactions between agents produce (or fail to produce) global order. Interactions are local (message passing or spin coupling). There is noise (faults or thermal fluctuations). And the central question is identical: does macroscopic order emerge from microscopic dynamics?
+
+The mathematics is isomorphic. A consensus protocol defines an energy landscape over possible execution histories, just as a Hamiltonian defines an energy landscape over spin configurations. Agreement is a low-energy state. Disagreement is high-energy. The question of whether consensus is achievable becomes the question of whether the system has a phase transition from disorder to order.
+
+Because of this parallel, we can use well established machinery from physics to understand distributed systems, and visa-versa. For instance, the fault tolerance thresholds that appear in distributed consensus ($f < N/3$ for BFT, $f < N/2$ for static) represent phase boundaries. The distinction between deterministic and probabilistic finality maps to gapped vs gapless phases. And the impossibility results of distributed computing equate to thermodynamic laws.
 
 ## Agreement as Macroscopic Order
 
@@ -55,7 +67,7 @@ When no gap exists ($\Delta F = 0$), competing histories coexist at comparable f
 Consensus protocols fall into three universality classes determined by their gap structure.
 
 ```mermaid
-graph LR
+graph TD
     subgraph "Class I: Gapless"
         N[Nakamoto]
     end

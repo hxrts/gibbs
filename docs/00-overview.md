@@ -25,20 +25,20 @@ The MeanField layer formalizes population dynamics over finite state spaces on t
 
 The ContinuumField layer lifts the discrete framework to spatially extended systems with nonlocal integral kernels. The central result is that global and local kernel operators are definitionally equal, proved by `rfl`. Spatial and temporal bridges connect continuous evolution to discrete protocol steps.
 
-The Consensus layer specializes the physics machinery to distributed agreement. Executions, decisions, adversary models, quorum thresholds, and energy gaps are defined in terms of partition functions and interactive distances. See [Consensus as Statistical Mechanics](06-consensus-statistical-mechanics.md) for the theoretical synthesis.
+The Consensus layer specializes the physics machinery to distributed agreement. Executions, decisions, adversary models, quorum thresholds, and energy gaps are defined in terms of partition functions and interactive distances. See [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md) for the theoretical synthesis.
 
 ## Proof Completeness
 
-There are no `sorry` axioms anywhere in the codebase. Several deep information-theoretic results are stated as Lean `axiom` declarations. These include the Shannon entropy Jensen bound, the data processing inequality, mutual information nonnegativity, BSC capacity formulas, and the Shannon coding theorems. All other proofs are concrete.
+Several core information-theoretic results are stated as Lean `axiom` declarations. These include the Shannon entropy Jensen bound, the data processing inequality, mutual information nonnegativity, BSC capacity formulas, and the Shannon coding theorems. All other proofs are concrete.
 
 ## Where to Start
 
 - [Getting Started](01-getting-started.md) covers setup, building, and adding new modules.
-- [The Session-Physics Correspondence](07-session-physics-correspondence.md) explains how session-type guarantees map to physical properties.
+- [The Session-Physics Correspondence](06-session-physics-correspondence.md) explains how session-type guarantees map to physical properties.
 - [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) introduces the phase-space foundation.
 - [Convex Duality and Bregman Divergence](03-convex-duality.md) covers the convex analysis toolkit.
 - [Mean-Field Dynamics](04-mean-field-dynamics.md) covers population dynamics on the simplex.
 - [Information Theory and Channels](05-information-theory.md) covers entropy, channels, and coding.
-- [Consensus as Statistical Mechanics](06-consensus-statistical-mechanics.md) presents the deepest synthesis.
+- [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md) presents the deepest synthesis.
 
 The full dependency tree and per-file API tables are in `Gibbs/CODE_MAP.md`.

@@ -1,6 +1,6 @@
 # Mean-Field Dynamics
 
-This document covers population dynamics on the probability simplex. The mean-field layer formalizes ODE existence, uniqueness, and stability for drift functions built from stoichiometric rules. For the convex analysis underpinning stability, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to consensus, see [Consensus as Statistical Mechanics](06-consensus-statistical-mechanics.md).
+This document covers population dynamics on the probability simplex. The mean-field layer formalizes ODE existence, uniqueness, and stability for drift functions built from stoichiometric rules. For the convex analysis underpinning stability, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
 
 ## The Probability Simplex
 
