@@ -4,7 +4,7 @@ Many systems in Gibbs reduce to populations of agents in a finite number of stat
 
 This chapter formalizes how those fractions evolve over time. The state of a population lives on the probability simplex, the set of all valid distributions over a finite state space. Drift functions describe how the distribution changes. Rules (reaction rates, flip rates, vote-switching rates) compose into drift functions. The key results are that solutions always exist, always stay on the simplex, and converge to equilibrium under appropriate conditions.
 
-The stability theory here connects back to convex duality (Chapter 3): the Bregman divergence to equilibrium serves as a Lyapunov function, providing a formal proof that the system converges. The Ising model serves as the concrete example that ties the layer together, exhibiting a phase transition between disordered and ordered states that reappears in the consensus setting (Chapter 7).
+The stability theory here connects back to convex duality (Chapter 3): the Bregman divergence to equilibrium serves as a Lyapunov function, providing a formal proof that the system converges. The Ising model serves as the concrete example that ties the module together, exhibiting a phase transition between disordered and ordered states that reappears in the consensus setting (Chapter 7).
 
 For the convex analysis underpinning stability, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
 
@@ -49,7 +49,7 @@ The Bregman divergence connects these approaches. For a strictly convex generato
 
 ## The Ising Model
 
-The simplest nontrivial mean-field system has two states: up and down. This is the Ising model, and it exhibits the core phenomenon that drives the consensus layer. Below a critical temperature, the population spontaneously magnetizes. Above it, the population remains disordered. This phase transition is the prototype for the gapped/gapless distinction in consensus (Chapter 7).
+The simplest nontrivial mean-field system has two states: up and down. This is the Ising model, and it exhibits the core phenomenon that drives the consensus module. Below a critical temperature, the population spontaneously magnetizes. Above it, the population remains disordered. This phase transition is the prototype for the gapped/gapless distinction in consensus (Chapter 7).
 
 The state space is `TwoState` with values `up` and `down`. The magnetization order parameter is $m = x_{\text{up}} - x_{\text{down}}$.
 

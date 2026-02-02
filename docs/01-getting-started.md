@@ -34,30 +34,21 @@ Gibbs depends on two local path dependencies:
 
 Both must be checked out at the expected relative paths before building. The `lakefile.lean` declares them as `require mathlib` and `require telltale`.
 
-## Adding a New Module
+## Using Gibbs as a Dependency
 
-Each layer has a facade file that re-exports its submodules. For example, `Gibbs/Hamiltonian.lean` imports all files under `Gibbs/Hamiltonian/`. When adding a new file, import it from the appropriate facade.
+To use Gibbs in your own Lean project, add it as a dependency in your `lakefile.lean`:
 
-New files should follow these conventions:
+```lean
+require gibbs from .."../gibbs"
+```
 
-1. Start with a prose problem statement after imports explaining what the file proves, what makes it hard, and the solution structure.
-2. Use `/-! ## Section Name -/` headers to break the file into logical groups.
-3. No code block may exceed 30 lines. Extract helper lemmas when proofs grow.
-4. Every theorem gets a docstring. Complex proofs get a strategy comment.
-5. Files must stay under 500 lines. Split into submodules when larger.
+Then import the modules you need:
 
-Use type abbreviations for readability. The project uses `Config n` for `EuclideanSpace ℝ (Fin n)` and `PhasePoint n` for the position-momentum pair.
+```lean
+import Gibbs.Hamiltonian
+import Gibbs.MeanField
+import Gibbs.ContinuumField
+import Gibbs.Consensus
+```
 
-## Common Proof Tactics
-
-| Tactic | Typical Use |
-|--------|-------------|
-| `rfl` | Definitional equality, operator exactness |
-| `simp` | Unfolding definitions, arithmetic simplification |
-| `linarith` / `nlinarith` | Linear and nonlinear arithmetic inequalities |
-| `positivity` | Nonnegativity of energy, norms, exponentials |
-| `ring` / `field_simp` | Algebraic identities, normalization |
-| `omega` | Natural number arithmetic |
-| `ext` | Function extensionality |
-
-These tactics appear throughout the codebase. Convexity arguments typically use `nlinarith` after unfolding definitions. Energy nonnegativity proofs use `positivity`. Algebraic cancellations in thermodynamic identities use `ring`.
+Each of these is a facade file that re-exports all submodules within that directory. You can also import individual files for finer-grained control, for example `import Gibbs.Hamiltonian.Stability`.
