@@ -21,6 +21,7 @@ docs/book/
 docs/SUMMARY.md
 mermaid.min.js
 mermaid-init.js
+mathjax-config.js
 
 # working
 work/

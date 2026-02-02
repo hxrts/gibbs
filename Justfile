@@ -64,12 +64,31 @@ summary:
 
     echo "Wrote $out"
 
+# Generate transient JS files for mdbook build
+_gen-js:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mdbook-mermaid install . > /dev/null 2>&1 || true
+    # Patch mermaid-init.js with null guards for mdbook 0.5.x theme buttons
+    sed -i.bak 's/document\.getElementById(\(.*\))\.addEventListener/const el = document.getElementById(\1); if (el) el.addEventListener/' mermaid-init.js && rm -f mermaid-init.js.bak
+    # MathJax v2 config for inline $ delimiters
+    cat > mathjax-config.js << 'JSEOF'
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+      },
+    });
+    MathJax.Hub.Reprocess();
+    JSEOF
+
 # Build the book after regenerating the summary
-book: summary
-    mdbook-mermaid install . > /dev/null 2>&1 || true && cp docs/mermaid-init-patch.js mermaid-init.js && mdbook build && rm -f mermaid-init.js mermaid.min.js
+book: summary _gen-js
+    mdbook build && rm -f mermaid-init.js mermaid.min.js mathjax-config.js
 
 # Serve locally with live reload
-serve: summary
+serve: summary _gen-js
     #!/usr/bin/env bash
-    trap 'rm -f mermaid-init.js mermaid.min.js' EXIT
-    mdbook-mermaid install . > /dev/null 2>&1 || true && cp docs/mermaid-init-patch.js mermaid-init.js && mdbook serve --open
+    trap 'rm -f mermaid-init.js mermaid.min.js mathjax-config.js' EXIT
+    mdbook serve --open
