@@ -16,6 +16,12 @@ result
 # macOS
 .DS_Store
 
+# mdbook
+docs/book/
+docs/SUMMARY.md
+docs/mermaid.min.js
+docs/mermaid-init.js
+
 # working
 work/
 

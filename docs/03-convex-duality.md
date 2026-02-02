@@ -1,0 +1,53 @@
+# Convex Duality and Bregman Divergence
+
+Gibbs contains a convex analysis toolkit where the Legendre transform, Bregman divergence, and Fenchel-Moreau theorem form the bridge between Hamiltonian energy and mean-field stability. For the phase-space setting, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md). For the application to population dynamics, see [Mean-Field Dynamics](04-mean-field-dynamics.md).
+
+## Legendre Transform
+
+The Legendre transform (convex conjugate) of a function $f$ maps each dual vector $p$ to the tightest affine upper bound on $\langle p, x \rangle - f(x)$:
+
+$$f^*(p) = \sup_x \left( \langle p, x \rangle - f(x) \right)$$
+
+For the quadratic $f(x) = \frac{1}{2}\|x\|^2$, the conjugate is $f^*(p) = \frac{1}{2}\|p\|^2$. The Legendre transform is self-dual in this case. For strongly convex functions, the conjugate has a Lipschitz gradient, and vice versa. This duality between strong convexity and smoothness underlies the condition number $L/m$ that controls convergence rates.
+
+The definition `legendre` in `Legendre.lean` computes the conjugate as a supremum. The Fenchel-Young inequality $\langle p, x \rangle \leq f(x) + f^*(p)$ follows immediately from the definition of supremum.
+
+## Bregman Divergence
+
+The Bregman divergence measures asymmetric distance according to a convex generator $f$:
+
+$$D_f(x, y) = f(x) - f(y) - \langle \nabla f(y), x - y \rangle$$
+
+Geometrically, $D_f(x, y)$ is the gap between $f(x)$ and the first-order Taylor approximation of $f$ at $y$ evaluated at $x$. Convexity guarantees this gap is nonneg. The theorem `bregman_nonneg` proves $D_f(x, y) \geq 0$ using convexity of restrictions to line segments.
+
+Strict convexity sharpens the bound. The theorem `bregman_eq_zero_iff` shows $D_f(x, y) = 0$ if and only if $x = y$ when $f$ is strictly convex. This makes the Bregman divergence a valid candidate for Lyapunov functions. For the quadratic generator $f = \frac{1}{2}\|{\cdot}\|^2$, the Bregman divergence reduces to $\frac{1}{2}\|x - y\|^2$, proved in `bregman_quadratic`.
+
+## Fenchel-Moreau Theorem
+
+The Fenchel-Moreau theorem states that a lower-semicontinuous convex function equals its double conjugate:
+
+$$f = f^{**}$$
+
+The proof in `FenchelMoreau.lean` proceeds in two directions. The inequality $f^{**} \leq f$ follows from two applications of the Fenchel-Young inequality. The reverse inequality requires showing that every point $(x, f(x))$ on the graph of $f$ lies on or above the graph of $f^{**}$.
+
+The reverse direction uses geometric Hahn-Banach separation. Because $f$ is convex and lower-semicontinuous, its epigraph $\{(x, t) : t \geq f(x)\}$ is a closed convex set. Any point strictly below the epigraph can be separated by a hyperplane, which yields a supporting affine function and hence a subgradient. The existence of subgradients everywhere implies $f \leq f^{**}$.
+
+The hypotheses for `fenchel_moreau` are `ConvexOn ℝ Set.univ f`, `LowerSemicontinuous f`, `HasFiniteConjugate f`, and `HasFiniteBiconjugate f`. The finiteness conditions exclude degenerate cases where the conjugate is identically $+\infty$ or $-\infty$.
+
+## Entropy as a Bregman Generator
+
+Negative Shannon entropy $f(x) = \sum_i x_i \log x_i$ is strictly convex on the probability simplex interior. Using it as a Bregman generator produces the KL divergence:
+
+$$D_f(p, q) = \sum_i p_i \log \frac{p_i}{q_i} = D_{\mathrm{KL}}(p \| q)$$
+
+The Legendre dual of negative entropy is the log-sum-exp function. Free energy $F = -\frac{1}{\beta} \log Z$ arises as a scaled Legendre dual. These connections are formalized in `EntropyBregman.lean` through axioms `kl_eq_bregman_negEntropy` and `legendre_negEntropy_eq_logSumExp`.
+
+The `softmax` function computes the exponentially-weighted normalized distribution. The theorems `softmax_nonneg` and `softmax_sum_one` verify it produces a valid distribution.
+
+## Connection to Stability
+
+The Bregman divergence provides Lyapunov functions for mean-field dynamics. If $x^*$ is an equilibrium and $f$ is strictly convex, then $V(x) = D_f(x, x^*)$ satisfies the Lyapunov conditions: it is nonneg, zero only at $x^*$, and (under appropriate drift conditions) decreasing along trajectories.
+
+The `bregman_lyapunov_data` construction in `BregmanBridge.lean` packages this into a `StrictLyapunovData` structure. The bridge converts between `Config n` (Euclidean space representation) and `Fin n → ℝ` (simplex representation) using the `EuclideanSpace.equiv` round-trip identities `toConfig_fromConfig` and `fromConfig_toConfig`.
+
+This construction is the formal link between Hamiltonian convex analysis and mean-field stability. Strong convexity of the generator translates directly to positivity of the Lyapunov function away from equilibrium.

@@ -24,6 +24,8 @@
           gawk
           gnused
           elan
+          mdbook
+          mdbook-mermaid
         ];
 
         buildInputs =
