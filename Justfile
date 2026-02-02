@@ -80,7 +80,7 @@ _gen-js:
         processEscapes: true,
       },
     });
-    MathJax.Hub.Reprocess();
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
     JSEOF
 
 # Build the book after regenerating the summary
