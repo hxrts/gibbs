@@ -58,31 +58,12 @@ def blockChannel {X Y : Type*} [Fintype X] [Fintype Y]
   transition_sum_one := by
     intro x
     classical
-    -- Product of per-coordinate sums equals 1.
-    -- Sum over all functions factors into a product of sums.
-    have hsum :
-        (∑ y : Fin n → Y, ∏ i, W.transition (x i) (y i)) =
-          ∏ i, ∑ y, W.transition (x i) y := by
-      have hpi :
-          (∑ y : Fin n → Y, ∏ i, W.transition (x i) (y i)) =
-            ∑ y ∈ Fintype.piFinset (fun _ : Fin n => (Finset.univ : Finset Y)),
-              ∏ i, W.transition (x i) (y i) := by
-        simp [Finset.sum_univ_pi]
-      have hprod :
-          ∑ y ∈ Fintype.piFinset (fun _ : Fin n => (Finset.univ : Finset Y)),
-              ∏ i, W.transition (x i) (y i) =
-            ∏ i, ∑ y ∈ (Finset.univ : Finset Y), W.transition (x i) y := by
-        simp using
-          (Finset.sum_prod_piFinset (s := (Finset.univ : Finset Y))
-            (g := fun i y => W.transition (x i) y))
-      -- remove the `∈ univ` binder
-      have hprod' :
-          (∏ i, ∑ y ∈ (Finset.univ : Finset Y), W.transition (x i) y) =
-            ∏ i, ∑ y, W.transition (x i) y := by
-        simp
-      simpa [hpi, hprod, hprod']
-    -- Each per-coordinate sum is 1.
-    simpa [hsum, W.transition_sum_one]
+    -- ∑ y, ∏ i, W(x_i, y_i) = ∏ i, ∑ y_i, W(x_i, y_i) = ∏ i, 1 = 1
+    have hfactor :
+        (∏ i : Fin n, ∑ j : Y, W.transition (x i) j) =
+          ∑ y : Fin n → Y, ∏ i, W.transition (x i) (y i) :=
+      Fintype.prod_sum (fun (i : Fin n) (j : Y) => W.transition (x i) j)
+    simp [← hfactor, W.transition_sum_one]
 
 /-! ## Noisy Channel Coding Theorem (Statements) -/
 

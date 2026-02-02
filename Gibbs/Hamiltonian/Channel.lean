@@ -165,15 +165,142 @@ theorem channelCapacity_nonneg {X Y : Type*} [Fintype X] [Fintype Y]
     exact le_ciSup hB d0
   exact le_trans hmi hle
 
-/-- Capacity bounded by log of output alphabet size. -/
-axiom channelCapacity_le_log_output {X Y : Type*} [Fintype X] [Fintype Y]
-    [Nonempty Y] (W : DMC X Y) :
-    channelCapacity W ≤ Real.log (Fintype.card Y)
+/-! ## Mutual Information Bounds via Conditional Entropy -/
 
-/-- Capacity bounded by log of input alphabet size. -/
-axiom channelCapacity_le_log_input {X Y : Type*} [Fintype X] [Fintype Y]
-    [Nonempty X] (W : DMC X Y) :
-    channelCapacity W ≤ Real.log (Fintype.card X)
+/-- I(X;Y) ≤ H(X): mutual info bounded by first marginal entropy.
+    Follows from H(X,Y) ≥ H(Y) (conditional entropy nonneg). -/
+private theorem mutualInfo_le_shannonEntropy_marginalFst {X Y : Type*}
+    [Fintype X] [Fintype Y]
+    (pXY : X × Y → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (h_sum : ∑ ab, pXY ab = 1) :
+    Gibbs.Hamiltonian.Entropy.mutualInfo pXY ≤
+      Gibbs.Hamiltonian.Entropy.shannonEntropy
+        (Gibbs.Hamiltonian.Entropy.marginalFst pXY) := by
+  -- condEntropy_nonneg gives 0 ≤ H(X,Y) - H(Y), i.e. H(Y) ≤ H(X,Y)
+  have hcond := Gibbs.Hamiltonian.Entropy.condEntropy_nonneg pXY h_nn h_sum
+  -- mutual info = H(X) + H(Y) - H(X,Y), so I ≤ H(X) iff H(Y) ≤ H(X,Y)
+  unfold Gibbs.Hamiltonian.Entropy.mutualInfo Gibbs.Hamiltonian.Entropy.condEntropy at *
+  linarith
+
+/-- I(X;Y) ≤ H(Y): mutual info bounded by second marginal entropy.
+    Uses I(X;Y) = H(X) + H(Y) - H(X,Y) and H(X,Y) ≥ H(X) via condEntropy on swapped. -/
+private theorem mutualInfo_le_shannonEntropy_marginalSnd {X Y : Type*}
+    [Fintype X] [Fintype Y]
+    (pXY : X × Y → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (h_sum : ∑ ab, pXY ab = 1) :
+    Gibbs.Hamiltonian.Entropy.mutualInfo pXY ≤
+      Gibbs.Hamiltonian.Entropy.shannonEntropy
+        (Gibbs.Hamiltonian.Entropy.marginalSnd pXY) := by
+  -- use symmetry: I(X;Y) = I(Y;X) ≤ H(margFst(pYX)) = H(margSnd(pXY))
+  have hsymm := Gibbs.Hamiltonian.Entropy.mutualInfo_symm pXY
+  -- pYX = fun (y,x) => pXY(x,y); mutualInfo_symm gives I(pXY) = I(pYX)
+  let pYX : Y × X → ℝ := fun ⟨y, x⟩ => pXY (x, y)
+  have h_nn' : ∀ ab, 0 ≤ pYX ab := by rintro ⟨y, x⟩; exact h_nn (x, y)
+  -- swapped sum equals 1
+  have h_sum' : ∑ ab, pYX ab = 1 := by
+    -- expand both as double sums, then swap summation order
+    have lhs : ∑ ab : Y × X, pYX ab = ∑ y, ∑ x, pXY (x, y) := by
+      simp [pYX, Fintype.sum_prod_type]
+    have rhs : ∑ ab : X × Y, pXY ab = ∑ x, ∑ y, pXY (x, y) := by
+      simp [Fintype.sum_prod_type]
+    rw [lhs, Finset.sum_comm, ← rhs]; exact h_sum
+  -- apply the margFst bound to the swapped distribution
+  have hbound := mutualInfo_le_shannonEntropy_marginalFst pYX h_nn' h_sum'
+  -- marginalFst pYX = marginalSnd pXY
+  have hfst_eq : Gibbs.Hamiltonian.Entropy.marginalFst pYX =
+      Gibbs.Hamiltonian.Entropy.marginalSnd pXY := by
+    funext y; simp [Gibbs.Hamiltonian.Entropy.marginalFst,
+      Gibbs.Hamiltonian.Entropy.marginalSnd, pYX]
+  rw [hfst_eq] at hbound
+  -- mutualInfo pXY = mutualInfo pYX by symmetry
+  have : Gibbs.Hamiltonian.Entropy.mutualInfo pXY =
+      Gibbs.Hamiltonian.Entropy.mutualInfo pYX := by
+    exact hsymm
+  linarith
+
+/-! ## Capacity Bounds -/
+
+/-- Capacity bounded by log of output alphabet size: C(W) ≤ log |Y|.
+    Each I(d;W) ≤ H(Y) ≤ log |Y| by conditional entropy nonneg + Shannon bound. -/
+theorem channelCapacity_le_log_output {X Y : Type*} [Fintype X] [Fintype Y]
+    [Nonempty X] [Nonempty Y] (W : DMC X Y) :
+    channelCapacity W ≤ Real.log (Fintype.card Y) := by
+  -- reuse helpers from channelCapacity_nonneg for joint dist validity
+  have h_joint_nonneg (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∀ ab, 0 ≤ jointDist W d.pmf ab := by
+    rintro ⟨x, y⟩; exact mul_nonneg (d.nonneg x) (W.transition_nonneg x y)
+  have h_joint_sum (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∑ ab, jointDist W d.pmf ab = 1 := by
+    calc ∑ ab, jointDist W d.pmf ab
+        = ∑ x, ∑ y, jointDist W d.pmf (x, y) := by
+          simpa using Fintype.sum_prod_type (f := fun ab : X × Y => jointDist W d.pmf ab)
+      _ = ∑ x, ∑ y, d.pmf x * W.transition x y := rfl
+      _ = ∑ x, d.pmf x * ∑ y, W.transition x y := by simp [Finset.mul_sum]
+      _ = 1 := by simp [W.transition_sum_one, d.sum_one]
+  have h_output_nonneg (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∀ y, 0 ≤ outputDist W d.pmf y := by
+    intro y; exact Finset.sum_nonneg fun x _ => mul_nonneg (d.nonneg x) (W.transition_nonneg x y)
+  have h_output_sum (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∑ y, outputDist W d.pmf y = 1 := by
+    calc ∑ y, outputDist W d.pmf y
+        = ∑ ab, jointDist W d.pmf ab := by
+          simpa using (Fintype.sum_prod_type_right'
+            (f := fun x y => d.pmf x * W.transition x y)).symm
+      _ = 1 := h_joint_sum d
+  -- each I(d;W) ≤ H(output) ≤ log |Y|
+  have h_bound (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      channelMutualInfo W d.pmf ≤ Real.log (Fintype.card Y) := by
+    -- I ≤ H(margSnd) = H(output)
+    have hI_le := mutualInfo_le_shannonEntropy_marginalSnd
+      (jointDist W d.pmf) (h_joint_nonneg d) (h_joint_sum d)
+    -- margSnd of joint = output
+    have hsnd := jointDist_marginalSnd W d.pmf
+    rw [hsnd] at hI_le
+    -- H(output) ≤ log |Y|
+    have hH_le := Gibbs.Hamiltonian.Entropy.shannonEntropy_le_log_card
+      (outputDist W d.pmf) (h_output_nonneg d) (h_output_sum d)
+    exact le_trans hI_le hH_le
+  -- witness for Nonempty (Distribution X) needed by ciSup_le
+  classical
+  obtain ⟨x0⟩ := (inferInstance : Nonempty X)
+  haveI : Nonempty (Gibbs.Hamiltonian.Entropy.Distribution X) :=
+    ⟨{ pmf := fun x => if x = x0 then 1 else 0
+       nonneg := fun x => by split <;> norm_num
+       sum_one := by simp }⟩
+  exact ciSup_le fun d => h_bound d
+
+/-- Capacity bounded by log of input alphabet size: C(W) ≤ log |X|.
+    Each I(d;W) ≤ H(X) ≤ log |X| by conditional entropy nonneg + Shannon bound. -/
+theorem channelCapacity_le_log_input {X Y : Type*} [Fintype X] [Fintype Y]
+    [Nonempty X] [Nonempty Y] (W : DMC X Y) :
+    channelCapacity W ≤ Real.log (Fintype.card X) := by
+  have h_joint_nonneg (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∀ ab, 0 ≤ jointDist W d.pmf ab := by
+    rintro ⟨x, y⟩; exact mul_nonneg (d.nonneg x) (W.transition_nonneg x y)
+  have h_joint_sum (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      ∑ ab, jointDist W d.pmf ab = 1 := by
+    calc ∑ ab, jointDist W d.pmf ab
+        = ∑ x, ∑ y, jointDist W d.pmf (x, y) := by
+          simpa using Fintype.sum_prod_type (f := fun ab : X × Y => jointDist W d.pmf ab)
+      _ = ∑ x, ∑ y, d.pmf x * W.transition x y := rfl
+      _ = ∑ x, d.pmf x * ∑ y, W.transition x y := by simp [Finset.mul_sum]
+      _ = 1 := by simp [W.transition_sum_one, d.sum_one]
+  -- each I(d;W) ≤ H(margFst) = H(input) ≤ log |X|
+  have h_bound (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+      channelMutualInfo W d.pmf ≤ Real.log (Fintype.card X) := by
+    have hI_le := mutualInfo_le_shannonEntropy_marginalFst
+      (jointDist W d.pmf) (h_joint_nonneg d) (h_joint_sum d)
+    have hfst := jointDist_marginalFst W d.pmf
+    rw [hfst] at hI_le
+    have hH_le := Gibbs.Hamiltonian.Entropy.shannonEntropy_le_log_card
+      d.pmf d.nonneg d.sum_one
+    exact le_trans hI_le hH_le
+  -- witness for Nonempty (Distribution X) needed by ciSup_le
+  classical
+  obtain ⟨x0⟩ := (inferInstance : Nonempty X)
+  haveI : Nonempty (Gibbs.Hamiltonian.Entropy.Distribution X) :=
+    ⟨{ pmf := fun x => if x = x0 then 1 else 0
+       nonneg := fun x => by split <;> norm_num
+       sum_one := by simp }⟩
+  exact ciSup_le fun d => h_bound d
 
 /-! ## Binary Symmetric Channel -/
 

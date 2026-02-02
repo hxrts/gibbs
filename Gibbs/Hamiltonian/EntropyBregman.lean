@@ -17,6 +17,7 @@ lightweight bridge between the information-theory and Hamiltonian layers.
 namespace Gibbs.Hamiltonian.EntropyBregman
 
 open Gibbs.Hamiltonian
+open InnerProductSpace
 
 noncomputable section
 
@@ -43,8 +44,10 @@ theorem negEntropyConfig_strictConvex_on_interior (n : ℕ) :
   let S : Set (Config n) := { x : Config n | ∀ i, 0 < (fromConfig x) i }
   let g : ℝ → ℝ := fun x => x * Real.log x
   have hstrict_g : StrictConvexOn ℝ (Set.Ioi (0 : ℝ)) g := by
-    have h := (strictConvexOn_mul_log : StrictConvexOn ℝ (Set.Ici (0 : ℝ)) g)
-    exact h.subset (by intro x hx; exact le_of_lt hx) (convex_Ioi (0 : ℝ))
+    have h := (Real.strictConvexOn_mul_log : StrictConvexOn ℝ (Set.Ici (0 : ℝ)) g)
+    refine h.subset ?_ (convex_Ioi (0 : ℝ))
+    intro x hx
+    exact le_of_lt (by simpa using hx)
   have hconv_g : ConvexOn ℝ (Set.Ioi (0 : ℝ)) g := hstrict_g.convexOn
   have hfrom_add :
       ∀ (a b : ℝ) (x y : Config n) (i : Fin n),
@@ -52,7 +55,7 @@ theorem negEntropyConfig_strictConvex_on_interior (n : ℕ) :
           a * fromConfig x i + b * fromConfig y i := by
     intro a b x y i
     -- `fromConfig` is linear via the EuclideanSpace equivalence.
-    simp [fromConfig, map_add, map_smul, mul_add, add_comm, add_left_comm, add_assoc]
+    simp [fromConfig]
   have hconvS : Convex ℝ S := by
     intro x hx y hy a b ha hb hab
     intro i
@@ -140,7 +143,7 @@ theorem negEntropyConfig_strictConvex_on_interior (n : ℕ) :
           = ∑ i, a * g (fromConfig x i) + ∑ i, b * g (fromConfig y i) := by
               simp [Finset.sum_add_distrib]
       _ = a * (∑ i, g (fromConfig x i)) + b * (∑ i, g (fromConfig y i)) := by
-              simp [Finset.mul_sum, Finset.sum_mul, mul_comm, mul_left_comm, mul_assoc]
+              simp [Finset.mul_sum]
   calc
     negEntropyConfig n (a • x + b • y)
         = ∑ i, g (a * fromConfig x i + b * fromConfig y i) := hneg_xy
@@ -151,11 +154,231 @@ theorem negEntropyConfig_strictConvex_on_interior (n : ℕ) :
 /-! ## KL = Bregman -/
 
 /-- KL divergence is the Bregman divergence of negative entropy. -/
-axiom kl_eq_bregman_negEntropy (n : ℕ) (p q : Fin n → ℝ)
-    (hp_nn : ∀ i, 0 ≤ p i) (hp_sum : ∑ i, p i = 1)
+theorem kl_eq_bregman_negEntropy (n : ℕ) (p q : Fin n → ℝ)
+    (_hp_nn : ∀ i, 0 ≤ p i) (hp_sum : ∑ i, p i = 1)
     (hq_pos : ∀ i, 0 < q i) (hq_sum : ∑ i, q i = 1) :
     Gibbs.Hamiltonian.Entropy.klDivergence p q =
-      bregman (negEntropyConfig n) (toConfig p) (toConfig q)
+      bregman (negEntropyConfig n) (toConfig p) (toConfig q) := by
+  classical
+  let g : ℝ → ℝ := fun x => x * Real.log x
+  have hneg : ∀ x, negEntropyConfig n x = ∑ i, g (fromConfig x i) := by
+    intro x
+    unfold negEntropyConfig g
+    refine Finset.sum_congr rfl ?_
+    intro i hi
+    by_cases hxi : fromConfig x i = 0
+    · simp [hxi]
+    · simp [hxi]
+  have hgrad :
+      gradient (negEntropyConfig n) (toConfig q) =
+        toConfig (fun i => Real.log (q i) + 1) := by
+    -- compute the gradient via fderiv of the coordinatewise sum
+    have hderiv_i :
+        ∀ i, HasFDerivAt (𝕜 := ℝ) (fun x : Config n => g (fromConfig x i))
+              (((Real.log (q i) + (1 : ℝ)) : ℝ) •
+                (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i)) (toConfig q) := by
+      intro i
+      have hqne : q i ≠ 0 := ne_of_gt (hq_pos i)
+      have hg : HasDerivAt (𝕜 := ℝ) g (Real.log (q i) + 1) (q i) := by
+        simpa [g] using (Real.hasDerivAt_mul_log hqne)
+      have hφ : HasFDerivAt (𝕜 := ℝ) (fun x : Config n => fromConfig x i)
+          (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i) (toConfig q) := by
+        -- `fromConfig x i` is the coordinate projection
+        simpa [fromConfig] using (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i).hasFDerivAt
+      simpa [g] using (hg.comp_hasFDerivAt (toConfig q) hφ)
+    have hsum_deriv :
+        HasFDerivAt (fun x : Config n => ∑ i, g (fromConfig x i))
+          (∑ i, (Real.log (q i) + 1) •
+            (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i)) (toConfig q) := by
+      simpa using (HasFDerivAt.fun_sum (u := (Finset.univ : Finset (Fin n)))
+        (A := fun i => fun x : Config n => g (fromConfig x i))
+        (A' := fun i => ((Real.log (q i) + (1 : ℝ)) : ℝ) •
+          (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i))
+        (x := toConfig q)
+        (h := by intro i hi; exact hderiv_i i))
+    have hsum_eq : (fun x : Config n => negEntropyConfig n x) =
+        fun x => ∑ i, g (fromConfig x i) := by
+      funext x
+      exact hneg x
+    have hsum_deriv' :
+        HasFDerivAt (negEntropyConfig n)
+          (∑ i, ((Real.log (q i) + (1 : ℝ)) : ℝ) •
+            (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i)) (toConfig q) := by
+      simpa [hsum_eq] using hsum_deriv
+    -- convert to gradient form
+    have hgrad' :
+        HasGradientAt (negEntropyConfig n)
+          ((toDual ℝ (Config n)).symm
+            (∑ i, ((Real.log (q i) + (1 : ℝ)) : ℝ) •
+              (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i))) (toConfig q) :=
+      (hasFDerivAt_iff_hasGradientAt).1 hsum_deriv'
+    -- identify the vector corresponding to the coordinate sum
+    have htoDual :
+        (toDual ℝ (Config n))
+            (toConfig (fun i => Real.log (q i) + 1)) =
+          ∑ i, ((Real.log (q i) + (1 : ℝ)) : ℝ) •
+            (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i) := by
+      ext v
+      -- evaluate both sides on `v`
+      simp [toDual_apply_apply, toConfig, EuclideanSpace.proj, PiLp.inner_apply, mul_comm]
+    have hvec :
+        (toDual ℝ (Config n)).symm
+            (∑ i, ((Real.log (q i) + (1 : ℝ)) : ℝ) •
+              (EuclideanSpace.proj (𝕜 := ℝ) (ι := Fin n) i)) =
+          toConfig (fun i => Real.log (q i) + 1) := by
+      -- apply injectivity of `toDual`
+      apply (toDual ℝ (Config n)).injective
+      simp [htoDual]
+    -- conclude on gradients
+    simpa [hvec] using hgrad'.gradient
+  -- expand the Bregman divergence and simplify
+  unfold Gibbs.Hamiltonian.Entropy.klDivergence bregman
+  -- rewrite negEntropy terms
+  have hneg_p : negEntropyConfig n (toConfig p) = ∑ i, g (p i) := by
+    simp [hneg, toConfig, fromConfig]
+  have hneg_q : negEntropyConfig n (toConfig q) = ∑ i, g (q i) := by
+    simp [hneg, toConfig, fromConfig]
+  -- inner product term
+  have hinner_toConfig (a b : Fin n → ℝ) :
+      inner ℝ (toConfig a) (toConfig b) = ∑ i, a i * b i := by
+    simp [toConfig, PiLp.inner_apply, mul_comm]
+  have htoConfig_sub : toConfig (fun i => p i - q i) = toConfig p - toConfig q := by
+    ext i
+    simp [toConfig, sub_eq_add_neg]
+  have hinner :
+      inner ℝ (gradient (negEntropyConfig n) (toConfig q)) (toConfig p - toConfig q) =
+        ∑ i, (Real.log (q i) + 1) * (p i - q i) := by
+    calc
+      inner ℝ (gradient (negEntropyConfig n) (toConfig q)) (toConfig p - toConfig q)
+          = inner ℝ (toConfig (fun i => Real.log (q i) + 1))
+              (toConfig (fun i => p i - q i)) := by
+                simp [hgrad, htoConfig_sub]
+      _ = ∑ i, (Real.log (q i) + 1) * (p i - q i) := by
+            simpa using (hinner_toConfig (fun i => Real.log (q i) + 1) (fun i => p i - q i))
+  -- finish by algebra
+  have hsum_pq : (∑ i, (p i - q i)) = 0 := by
+    simp [hp_sum, hq_sum]
+  have hcalc1 :
+      (∑ a, if p a = 0 then 0 else p a * Real.log (p a / q a)) =
+        (∑ i, (if p i = 0 then 0 else p i * (Real.log (p i) - Real.log (q i)))) := by
+    refine Finset.sum_congr rfl ?_
+    intro i hi
+    by_cases hpi : p i = 0
+    · simp [hpi]
+    · have hqne : q i ≠ 0 := ne_of_gt (hq_pos i)
+      simp [hpi, Real.log_div, hqne]
+  have hcalc2 :
+      (∑ i, (if p i = 0 then 0 else p i * (Real.log (p i) - Real.log (q i)))) =
+        (∑ i, (if p i = 0 then 0 else p i * Real.log (p i))) -
+          (∑ i, (if p i = 0 then 0 else p i * Real.log (q i))) := by
+    have hsplit :
+        (∑ i, (if p i = 0 then 0 else p i * (Real.log (p i) - Real.log (q i)))) =
+          (∑ i, ((if p i = 0 then 0 else p i * Real.log (p i)) -
+            (if p i = 0 then 0 else p i * Real.log (q i)))) := by
+      refine Finset.sum_congr rfl ?_
+      intro i hi
+      by_cases hpi : p i = 0
+      · simp [hpi]
+      · simp [hpi, mul_sub]
+    rw [hsplit]
+    exact (Finset.sum_sub_distrib
+      (s := (Finset.univ : Finset (Fin n)))
+      (f := fun i => if p i = 0 then 0 else p i * Real.log (p i))
+      (g := fun i => if p i = 0 then 0 else p i * Real.log (q i)))
+  have hcalc3 :
+      ((∑ i, (if p i = 0 then 0 else p i * Real.log (p i))) -
+        (∑ i, (if p i = 0 then 0 else p i * Real.log (q i)))) =
+        ((∑ i, g (p i)) - (∑ i, p i * Real.log (q i))) := by
+    have hsum_if :
+        (∑ i, (if p i = 0 then 0 else p i * Real.log (p i))) =
+          (∑ i, p i * Real.log (p i)) := by
+      refine Finset.sum_congr rfl ?_
+      intro i hi
+      by_cases hpi : p i = 0
+      · simp [hpi]
+      · simp [hpi]
+    calc
+      (∑ i, (if p i = 0 then 0 else p i * Real.log (p i))) -
+          (∑ i, (if p i = 0 then 0 else p i * Real.log (q i))) =
+        (∑ i, p i * Real.log (p i)) -
+          (∑ i, (if p i = 0 then 0 else p i * Real.log (q i))) := by
+            simp [hsum_if]
+      _ = (∑ i, g (p i)) -
+          (∑ i, (if p i = 0 then 0 else p i * Real.log (q i))) := by
+            simp [g]
+      _ = (∑ i, g (p i)) - (∑ i, p i * Real.log (q i)) := by
+            refine congrArg (fun t => (∑ i, g (p i)) - t) ?_
+            refine Finset.sum_congr rfl ?_
+            intro i hi
+            by_cases hpi : p i = 0
+            · simp [hpi]
+            · simp [hpi]
+  have hcalc4 :
+      ((∑ i, g (p i)) - (∑ i, p i * Real.log (q i))) =
+        ((∑ i, g (p i)) - (∑ i, g (q i)) -
+          ∑ i, (Real.log (q i) + 1) * (p i - q i)) := by
+    -- use simplex sums
+    have : (∑ i, (Real.log (q i) + 1) * (p i - q i)) =
+        (∑ i, p i * Real.log (q i)) - (∑ i, g (q i)) + (∑ i, p i - ∑ i, q i) := by
+      calc
+        ∑ i, (Real.log (q i) + 1) * (p i - q i)
+            = ∑ i, ((Real.log (q i) * p i - Real.log (q i) * q i) + (p i - q i)) := by
+                refine Finset.sum_congr rfl ?_
+                intro i hi
+                ring
+        _ = (∑ i, (Real.log (q i) * p i - Real.log (q i) * q i)) +
+            (∑ i, (p i - q i)) := by
+                simp [Finset.sum_add_distrib]
+        _ = (∑ i, Real.log (q i) * p i) - (∑ i, Real.log (q i) * q i) +
+            (∑ i, p i - ∑ i, q i) := by
+                have h1 :
+                    ∑ i, (Real.log (q i) * p i - Real.log (q i) * q i) =
+                      (∑ i, Real.log (q i) * p i) - (∑ i, Real.log (q i) * q i) := by
+                    exact (Finset.sum_sub_distrib
+                      (s := (Finset.univ : Finset (Fin n)))
+                      (f := fun i => Real.log (q i) * p i)
+                      (g := fun i => Real.log (q i) * q i))
+                have h2 : ∑ i, (p i - q i) = (∑ i, p i) - (∑ i, q i) := by
+                  exact (Finset.sum_sub_distrib
+                    (s := (Finset.univ : Finset (Fin n)))
+                    (f := fun i => p i) (g := fun i => q i))
+                calc
+                  (∑ i, (Real.log (q i) * p i - Real.log (q i) * q i)) +
+                      (∑ i, (p i - q i)) =
+                    ((∑ i, Real.log (q i) * p i) - (∑ i, Real.log (q i) * q i)) +
+                      ((∑ i, p i) - (∑ i, q i)) := by
+                    rw [h1, h2]
+                  _ = (∑ i, Real.log (q i) * p i) - (∑ i, Real.log (q i) * q i) +
+                      (∑ i, p i - ∑ i, q i) := by
+                    ring
+        _ = (∑ i, p i * Real.log (q i)) - (∑ i, g (q i)) +
+            (∑ i, p i - ∑ i, q i) := by
+            simp [g, mul_comm]
+    -- simplify
+    have hsum_pq' : (∑ i, p i - ∑ i, q i) = 0 := by
+      simp [hp_sum, hq_sum]
+    -- rearrange
+    linarith [this, hsum_pq']
+  have hkl :
+      (∑ a, if p a = 0 then 0 else p a * Real.log (p a / q a)) =
+        (∑ i, g (p i)) - (∑ i, g (q i)) -
+          ∑ i, (Real.log (q i) + 1) * (p i - q i) := by
+    calc
+      (∑ a, if p a = 0 then 0 else p a * Real.log (p a / q a))
+          = (∑ i, (if p i = 0 then 0 else p i * (Real.log (p i) - Real.log (q i)))) := hcalc1
+      _ = (∑ i, (if p i = 0 then 0 else p i * Real.log (p i))) -
+          (∑ i, (if p i = 0 then 0 else p i * Real.log (q i))) := hcalc2
+      _ = (∑ i, g (p i)) - (∑ i, p i * Real.log (q i)) := hcalc3
+      _ = (∑ i, g (p i)) - (∑ i, g (q i)) -
+          ∑ i, (Real.log (q i) + 1) * (p i - q i) := hcalc4
+  calc
+    (∑ a, if p a = 0 then 0 else p a * Real.log (p a / q a))
+        = (∑ i, g (p i)) - (∑ i, g (q i)) -
+          ∑ i, (Real.log (q i) + 1) * (p i - q i) := hkl
+    _ = (negEntropyConfig n (toConfig p)) -
+        (negEntropyConfig n (toConfig q)) -
+        inner ℝ (gradient (negEntropyConfig n) (toConfig q)) (toConfig p - toConfig q) := by
+          simp [hneg_p, hneg_q, hinner]
 
 /-- KL nonnegativity via Bregman divergence. -/
 axiom kl_nonneg_via_bregman (n : ℕ) (p q : Fin n → ℝ)

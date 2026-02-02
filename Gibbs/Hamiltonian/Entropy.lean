@@ -216,7 +216,7 @@ def condEntropy {α β : Type*} [Fintype α] [Fintype β] (pXY : α × β → �
 
 /-- Conditional entropy is nonnegative. -/
 theorem condEntropy_nonneg {α β : Type*} [Fintype α] [Fintype β]
-    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (h_sum : ∑ ab, pXY ab = 1) :
+    (pXY : α × β → ℝ) (h_nn : ∀ ab, 0 ≤ pXY ab) (_h_sum : ∑ ab, pXY ab = 1) :
     0 ≤ condEntropy pXY := by
   classical
   let pY : β → ℝ := marginalSnd pXY
@@ -244,56 +244,94 @@ theorem condEntropy_nonneg {α β : Type*} [Fintype α] [Fintype β]
   -- rewrite the second entropy term as a sum over (x,y)
   have hsum_log :
       (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)) =
-        ∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2) := by
-    have hsum_prod :
-        ∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2) =
+        (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) := by
+    have hinner :
+        (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)) =
           ∑ y, ∑ x, if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y) := by
-      simpa using (Fintype.sum_prod_type_right'
-        (f := fun x y => if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y))).symm
-    refine hsum_prod.trans ?_
-    refine Finset.sum_congr rfl ?_
-    intro y hy
-    by_cases hpy : pY y = 0
-    · have hzero : ∀ x, pXY (x, y) = 0 := hpXY_eq_zero_of_pY_eq_zero y hpy
-      simp [hpy, hzero]
-    · have hterm :
-          ∀ x, (if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y)) =
-            pXY (x, y) * Real.log (pY y) := by
+      refine Finset.sum_congr rfl ?_
+      intro y hy
+      by_cases hpy : pY y = 0
+      · have hzero : ∀ x, pXY (x, y) = 0 := hpXY_eq_zero_of_pY_eq_zero y hpy
+        simp [hpy, hzero]
+      · have hterm :
+            ∀ x, (if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y)) =
+              pXY (x, y) * Real.log (pY y) := by
             intro x
             by_cases hxy : pXY (x, y) = 0
             · simp [hxy]
             · simp [hxy]
-      calc
-        ∑ x, if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y)
-            = ∑ x, pXY (x, y) * Real.log (pY y) := by
-                refine Finset.sum_congr rfl ?_
-                intro x hx
-                exact hterm x
-        _ = (∑ x, pXY (x, y)) * Real.log (pY y) := by
-                simp [Finset.sum_mul]
-        _ = pY y * Real.log (pY y) := by rfl
+        have hcalc :
+            (∑ x, if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y)) =
+              pY y * Real.log (pY y) := by
+          calc
+            (∑ x, if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y))
+                = (∑ x, pXY (x, y) * Real.log (pY y)) := by
+                    refine Finset.sum_congr rfl ?_
+                    intro x hx
+                    exact hterm x
+            _ = (∑ x, pXY (x, y)) * Real.log (pY y) := by
+                    simp [Finset.sum_mul]
+            _ = pY y * Real.log (pY y) := by rfl
+        simpa [hpy] using hcalc.symm
+    have hsum_prod :
+        (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) =
+          ∑ y, ∑ x, if pXY (x, y) = 0 then 0 else pXY (x, y) * Real.log (pY y) := by
+      simpa using (Fintype.sum_prod_type_right
+        (f := fun ab : α × β => if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)))
+    exact hinner.trans hsum_prod.symm
   -- expand conditional entropy and use the rewrite
   unfold condEntropy shannonEntropy
   have hrewrite :
-      -∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab) +
-        ∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y) =
-        ∑ ab : α × β,
+      -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+        (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)) =
+        (∑ ab : α × β,
           (if pXY ab = 0 then 0
-           else pXY ab * (Real.log (pY ab.2) - Real.log (pXY ab))) := by
+           else pXY ab * (Real.log (pY ab.2) - Real.log (pXY ab)))) := by
+    -- fold the Y-sum into a product sum, then combine termwise.
+    have hsum_y :
+        (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)) =
+          (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) := by
+      simp [hsum_log]
+    have hcomb :
+        -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+            (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) =
+          (∑ ab : α × β,
+            (-(if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+              (if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)))) := by
+      calc
+        -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+            (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2))
+            = (∑ ab, -(if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab))) +
+                (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) := by
+                simp [Finset.sum_neg_distrib]
+        _ = (∑ ab : α × β,
+              (-(if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+                (if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)))) := by
+              simpa using
+                (Finset.sum_add_distrib
+                  (f := fun ab => -(if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)))
+                  (g := fun ab => if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2))).symm
     calc
-      -∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab) +
-          ∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)
-          = -∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab) +
-              ∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2) := by
-                simp [hsum_log]
-      _ = ∑ ab : α × β,
+      -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+          (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y))
+          = -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+              (∑ ab : α × β, if pXY ab = 0 then 0 else pXY ab * Real.log (pY ab.2)) := by
+                simp [hsum_y]
+      _ = (∑ ab : α × β,
             (if pXY ab = 0 then 0
-             else pXY ab * (Real.log (pY ab.2) - Real.log (pXY ab))) := by
-                refine Finset.sum_congr rfl ?_
-                intro ab hab
-                by_cases hpa : pXY ab = 0
-                · simp [hpa]
-                · ring
+             else pXY ab * (Real.log (pY ab.2) - Real.log (pXY ab)))) := by
+            -- combine termwise
+            refine (hcomb.trans ?_)
+            refine Finset.sum_congr rfl ?_
+            intro ab hab
+            by_cases hpa : pXY ab = 0
+            · simp [hpa]
+            ·
+              have hring :
+                  -(pXY ab * Real.log (pXY ab)) + pXY ab * Real.log (pY ab.2) =
+                    pXY ab * (Real.log (pY ab.2) - Real.log (pXY ab)) := by
+                ring
+              simpa [hpa] using hring
   have hterm_nonneg :
       ∀ ab, 0 ≤
         (if pXY ab = 0 then 0
@@ -320,8 +358,8 @@ theorem condEntropy_nonneg {α β : Type*} [Fintype α] [Fintype β]
     exact hterm_nonneg ab
   -- final inequality
   have : 0 ≤
-      -∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab) +
-        ∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y) := by
+      -(∑ ab, if pXY ab = 0 then 0 else pXY ab * Real.log (pXY ab)) +
+        (∑ y, if pY y = 0 then 0 else pY y * Real.log (pY y)) := by
     simpa [hrewrite] using hsum_nonneg
   linarith
 
