@@ -1,6 +1,8 @@
 # The Session-Physics Correspondence
 
-This document articulates the correspondence between session-type guarantees and physical properties in Gibbs. For the physical layers, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field-dynamics.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
+Session types were designed to reason about message-passing programs. Physical dynamics were formalized to reason about coupled differential equations. These two formalisms turn out to describe the same thing: structured interaction between parts of a system. A session type specifying "role A sends position to role B, then B sends force back" encodes the same coupling structure as a pair of differential equations where A's position determines the force on B. This chapter makes that correspondence precise, identifies where it holds, and maps out its boundaries.
+
+For the physical foundations, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field.md). For the application to consensus, see [Consensus as Statistical Mechanics](08-consensus-statistical-mechanics.md).
 
 ## Why Session Types and Physics Correspond
 
@@ -148,7 +150,7 @@ Safety corresponds to conservation laws and constraint preservation. Liveness co
 
 Eventual consistency corresponds to diffusive relaxation. When updates stop, replicas converge like the heat equation $\partial T / \partial t = \kappa \nabla^2 T$ smooths temperature gradients. The convergence rate is $\sim e^{-\lambda_1 t}$ where $\lambda_1$ is the spectral gap of the diffusion operator.
 
-The spectral gap is the consistency window. A larger gap means faster convergence to agreement. This connects to the stability theory in [Mean-Field Dynamics](04-mean-field-dynamics.md) where Hurwitz eigenvalue conditions control convergence rates.
+The spectral gap is the consistency window. A larger gap means faster convergence to agreement. This connects to the stability theory in [Mean-Field Dynamics](04-mean-field.md) where Hurwitz eigenvalue conditions control convergence rates.
 
 ## Consistency Levels
 

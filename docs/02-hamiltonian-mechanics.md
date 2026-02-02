@@ -2,11 +2,11 @@
 
 Physical systems evolve by trading energy between different forms. A pendulum converts potential energy into kinetic energy and back. A damped spring loses energy to friction until it comes to rest. A thermostat injects and extracts energy to maintain a target temperature. In each case, the total energy function governs the dynamics.
 
-Gibbs takes this as its starting point. The Hamiltonian (total energy) defines a landscape over the system's state space. Convexity of that landscape is the central structural assumption. It guarantees that energy has a well-defined minimum, that the Legendre transform connecting position and momentum descriptions is well-behaved, and that damped systems converge to equilibrium. These properties propagate through every module in the project: convex duality (Chapter 3) inherits the energy structure, mean-field dynamics (Chapter 4) uses it for stability, and consensus (Chapter 7) reinterprets energy gaps as fault tolerance thresholds.
+Gibbs takes this as its starting point. The Hamiltonian (total energy) defines a landscape over the system's state space. Convexity of that landscape is the central structural assumption. It guarantees that energy has a well-defined minimum, that the Legendre transform connecting position and momentum descriptions is well-behaved, and that damped systems converge to equilibrium. These properties propagate through every module in the project: convex duality (Chapter 3) inherits the energy structure, mean-field dynamics (Chapter 4) uses it for stability, and consensus (Chapter 8) reinterprets energy gaps as fault tolerance thresholds.
 
 This chapter covers the undamped and damped equations of motion, energy conservation and dissipation, Lyapunov stability, the Nose-Hoover thermostat, Gibbs ensembles, stochastic (Langevin) dynamics, and a concrete case study in lattice electrodynamics.
 
-For the convex analysis toolkit, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For how these dynamics connect to population models, see [Mean-Field Dynamics](04-mean-field-dynamics.md).
+For the convex analysis toolkit, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For how these dynamics connect to population models, see [Mean-Field Dynamics](04-mean-field.md).
 
 ## Phase Space and Separable Hamiltonians
 

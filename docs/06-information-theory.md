@@ -2,11 +2,11 @@
 
 Every physical system and every distributed protocol faces the same problem: communicating reliably through a noisy medium. A sensor reading corrupted by thermal fluctuations, a message corrupted by a faulty network link, and a vote corrupted by a Byzantine node are all instances of the same mathematical situation. Information theory provides the universal language for reasoning about these problems.
 
-This chapter develops that language for Gibbs. Entropy measures how much uncertainty a distribution carries. KL divergence measures how different one distribution is from another, connecting to the Bregman divergence from Chapter 3. Channel capacity quantifies how much reliable information can pass through a noisy channel. Error-correcting codes achieve that capacity by creating energy gaps between valid codewords, the same gaps that reappear as fault tolerance thresholds in consensus (Chapter 7).
+This chapter develops that language for Gibbs. Entropy measures how much uncertainty a distribution carries. KL divergence measures how different one distribution is from another, connecting to the Bregman divergence from Chapter 3. Channel capacity quantifies how much reliable information can pass through a noisy channel. Error-correcting codes achieve that capacity by creating energy gaps between valid codewords, the same gaps that reappear as fault tolerance thresholds in consensus (Chapter 8).
 
 The key insight is that coding theory is the non-interactive special case of consensus. A code has a single sender and one round of communication. Consensus adds interaction and adaptive adversaries, which tightens the achievable threshold from $1/2$ to $1/3$. But the underlying structure, energy gaps between macrostates, is identical.
 
-For the convex duality perspective on entropy, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to agreement protocols, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
+For the convex duality perspective on entropy, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to agreement protocols, see [Consensus as Statistical Mechanics](08-consensus-statistical-mechanics.md).
 
 ## Entropy and KL Divergence
 

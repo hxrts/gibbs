@@ -318,6 +318,55 @@ theorem klDivergence_eq_crossEntropy_sub {α : Type*} [Fintype α]
     _ = (∑ a, (if p a = 0 then 0 else - p a * Real.log (q a))) - shannonEntropy p := by
           simp [shannonEntropy]
 
+/-- Binary entropy equals Shannon entropy of a Bool distribution. -/
+theorem binaryEntropy_eq_shannonEntropy_bool (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1) :
+    binaryEntropy ε =
+      shannonEntropy (fun b : Bool => if b then ε else 1 - ε) := by
+  unfold binaryEntropy shannonEntropy
+  simp [Fintype.univ_bool]
+  -- after expanding, both sides match up to commutativity
+  have h1e : (1 - ε = 0) = (ε = 1) :=
+    propext ⟨by intro h; linarith, by intro h; linarith⟩
+  simp [h1e]; ring
+
+/-- Binary entropy is strictly less than log 2 when ε ≠ 1/2.
+
+    Uses D_KL([ε, 1-ε] ‖ uniform) = log 2 - H₂(ε) > 0. -/
+theorem binaryEntropy_lt_log_two (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1)
+    (hne : ε ≠ 1/2) :
+    binaryEntropy ε < Real.log 2 := by
+  -- define p = [ε, 1-ε] and q = uniform on Bool
+  let p : Bool → ℝ := fun b => if b then ε else 1 - ε
+  let q : Bool → ℝ := fun _ => 1 / 2
+  have hp_nn : ∀ a, 0 ≤ p a := by
+    intro b; cases b <;> simp [p] <;> linarith
+  have hp_sum : ∑ a, p a = 1 := by simp [p, Fintype.univ_bool]
+  have hq_nn : ∀ a, 0 ≤ q a := by intro _; norm_num
+  have hq_sum : ∑ a, q a = 1 := by simp [q, Fintype.univ_bool]
+  -- D_KL(p ‖ q) = log 2 - H₂(ε)
+  have hkl_eq : klDivergence p q = Real.log 2 - binaryEntropy ε := by
+    rw [binaryEntropy_eq_shannonEntropy_bool ε hε₀ hε₁]
+    have hcard : (Fintype.card Bool : ℝ) = 2 := by
+      simp [Fintype.card_bool]
+    have := kl_uniform_eq p hp_nn hp_sum
+    -- kl_uniform_eq gives D_KL(p ‖ 1/|Bool|) = log |Bool| - H(p)
+    simp only [q, Fintype.card_bool] at this ⊢
+    linarith
+  -- p ≠ q since ε ≠ 1/2
+  have hpq : p ≠ q := by
+    intro h
+    have := congr_fun h true
+    simp [p, q] at this
+    exact hne (by linarith)
+  -- D_KL > 0
+  have habs : ∀ a, p a ≠ 0 → q a ≠ 0 := by intro _ _; norm_num
+  have hkl_pos : 0 < klDivergence p q := by
+    have hkl_nn := klDivergence_nonneg p q hp_nn hp_sum hq_nn hq_sum habs
+    have hkl_ne := ((klDivergence_eq_zero_iff p q hp_nn hp_sum
+      hq_nn hq_sum habs).not.mpr hpq)
+    exact lt_of_le_of_ne hkl_nn (Ne.symm hkl_ne)
+  linarith
+
 /-! ## Marginals and Joint Distributions -/
 
 /-- Marginal over the first variable. -/
@@ -701,11 +750,303 @@ def pushforward {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
     (pXY : α × β → ℝ) (K : MarkovKernel β γ) : α × γ → ℝ :=
   fun ⟨a, c⟩ => ∑ b, pXY (a, b) * K.transition b c
 
-/-- Data processing inequality: I(X;Z) ≤ I(X;Y) for X → Y → Z Markov. -/
-axiom data_processing_inequality {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+/-- Pushforward preserves nonnegativity. -/
+private theorem pushforward_nonneg {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ)
+    (h_nn : ∀ ab, 0 ≤ pXY ab) : ∀ ac, 0 ≤ pushforward pXY K ac := by
+  intro ⟨a, c⟩
+  exact Finset.sum_nonneg fun b _ => mul_nonneg (h_nn (a, b)) (K.nonneg b c)
+
+/-- Pushforward preserves total mass. -/
+private theorem pushforward_sum_one {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ)
+    (h_sum : ∑ ab, pXY ab = 1) : ∑ ac, pushforward pXY K ac = 1 := by
+  simp only [pushforward]
+  -- Rewrite as double sum, swap inner sums, collapse K
+  have : ∀ a, ∑ c, ∑ b, pXY (a, b) * K.transition b c =
+      ∑ b, pXY (a, b) := by
+    intro a; rw [Finset.sum_comm]; simp_rw [← Finset.mul_sum, K.sum_one, mul_one]
+  rw [← Finset.univ_product_univ, Finset.sum_product]; simp_rw [this]
+  rw [← Fintype.sum_prod_type]; exact h_sum
+
+/-- First marginal of pushforward equals first marginal of original. -/
+private theorem pushforward_marginalFst {α β γ : Type*}
+    [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (a : α) :
+    marginalFst (pushforward pXY K) a = marginalFst pXY a := by
+  simp only [marginalFst, pushforward]
+  rw [Finset.sum_comm]
+  simp_rw [← Finset.mul_sum, K.sum_one, mul_one]
+
+/-- Second marginal of pushforward: pZ(c) = Σ_b pY(b)·K(b,c). -/
+private theorem pushforward_marginalSnd {α β γ : Type*}
+    [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (c : γ) :
+    marginalSnd (pushforward pXY K) c =
+      ∑ b, marginalSnd pXY b * K.transition b c := by
+  simp only [marginalSnd, pushforward]
+  rw [Finset.sum_comm]; congr 1; ext b; exact (Finset.sum_mul ..).symm
+
+/-! ### Log-Sum Inequality -/
+
+/-- Per-term bound: a·log(b·Σa/(a·Σb)) ≤ b·Σa/Σb - a, from log(x) ≤ x - 1. -/
+private theorem log_sum_term_bound {a_y b_y Sa Sb : ℝ}
+    (ha : 0 < a_y) (hb : 0 < b_y) (hSa : 0 < Sa) (hSb : 0 < Sb) :
+    a_y * Real.log (b_y * Sa / (a_y * Sb)) ≤ b_y * Sa / Sb - a_y := by
+  have hratio : 0 < b_y * Sa / (a_y * Sb) := div_pos (mul_pos hb hSa) (mul_pos ha hSb)
+  have hlog := Real.log_le_sub_one_of_pos hratio
+  have hsimp : a_y * (b_y * Sa / (a_y * Sb) - 1) = b_y * Sa / Sb - a_y := by
+    field_simp
+  linarith [mul_le_mul_of_nonneg_left hlog ha.le]
+
+/-- Log splitting: a·log(b·Sa/(a·Sb)) = -a·log(a/b) + a·log(Sa/Sb). -/
+private theorem log_sum_term_split {a_y b_y Sa Sb : ℝ}
+    (ha : a_y ≠ 0) (hb : b_y ≠ 0) (hSa : 0 < Sa) (hSb : 0 < Sb) :
+    a_y * Real.log (b_y * Sa / (a_y * Sb)) =
+      -(a_y * Real.log (a_y / b_y)) + a_y * Real.log (Sa / Sb) := by
+  have h1 : b_y * Sa / (a_y * Sb) = (b_y / a_y) * (Sa / Sb) := by field_simp
+  rw [h1, Real.log_mul (div_ne_zero hb ha) (ne_of_gt (div_pos hSa hSb))]
+  have h2 : b_y / a_y = (a_y / b_y)⁻¹ := by field_simp
+  rw [h2, Real.log_inv]; ring
+
+/-- RHS of log-sum per-term bound sums to ≤ 0. -/
+private theorem log_sum_rhs_le {β : Type*} [Fintype β]
+    (a b : β → ℝ) (hb_nn : ∀ y, 0 ≤ b y) (hSa : 0 < ∑ y, a y)
+    (hSb : 0 < ∑ y, b y) :
+    ∑ y, (if a y = 0 then 0
+      else b y * (∑ y, a y) / (∑ y, b y) - a y) ≤ 0 := by
+  calc ∑ y, (if a y = 0 then 0
+        else b y * (∑ y, a y) / (∑ y, b y) - a y)
+      ≤ ∑ y, (b y * (∑ y, a y) / (∑ y, b y) - a y) := by
+        apply Finset.sum_le_sum; intro y _; split_ifs with h
+        · linarith [div_nonneg (mul_nonneg (hb_nn y) hSa.le) hSb.le]
+        · exact le_refl _
+    _ = (∑ y, b y) * (∑ y, a y) / (∑ y, b y) - ∑ y, a y := by
+        rw [Finset.sum_sub_distrib, ← Finset.sum_div, ← Finset.sum_mul]
+    _ = 0 := by
+        rw [mul_comm, mul_div_assoc, div_self (ne_of_gt hSb), mul_one, sub_self]
+
+/-- LHS of log-sum rewritten via log splitting. -/
+private theorem log_sum_lhs_eq {β : Type*} [Fintype β]
+    (a b : β → ℝ) (_ha_nn : ∀ y, 0 ≤ a y)
+    (habs : ∀ y, a y ≠ 0 → b y ≠ 0)
+    (hSa : 0 < ∑ y, a y) (hSb : 0 < ∑ y, b y) :
+    ∑ y, (if a y = 0 then 0
+      else a y * Real.log (b y * (∑ y, a y) / (a y * (∑ y, b y)))) =
+    -(∑ y, if a y = 0 then 0 else a y * Real.log (a y / b y)) +
+      (∑ y, a y) * Real.log ((∑ y, a y) / (∑ y, b y)) := by
+  have hterms : ∀ y, (if a y = 0 then 0
+      else a y * Real.log (b y * (∑ y, a y) / (a y * (∑ y, b y)))) =
+    (if a y = 0 then 0 else -(a y * Real.log (a y / b y))) +
+      a y * Real.log ((∑ y, a y) / (∑ y, b y)) := by
+    intro y; by_cases hay : a y = 0
+    · simp [hay]
+    · simp only [hay, ↓reduceIte]
+      exact log_sum_term_split hay (habs y hay) hSa hSb
+  simp_rw [hterms, Finset.sum_add_distrib, ← Finset.sum_mul]
+  congr 1; rw [← Finset.sum_neg_distrib]
+  exact Finset.sum_congr rfl fun y _ => by by_cases hay : a y = 0 <;> simp [hay]
+
+/-- Log-sum inequality, positive-sum case. -/
+private theorem log_sum_ineq_pos {β : Type*} [Fintype β]
+    (a b : β → ℝ) (ha_nn : ∀ y, 0 ≤ a y) (hb_nn : ∀ y, 0 ≤ b y)
+    (habs : ∀ y, a y ≠ 0 → b y ≠ 0) (hSb : 0 < ∑ y, b y)
+    (hSa : ∑ y, a y ≠ 0) :
+    (∑ y, a y) * Real.log ((∑ y, a y) / (∑ y, b y)) ≤
+      ∑ y, if a y = 0 then 0 else a y * Real.log (a y / b y) := by
+  have hSa_pos : 0 < ∑ y, a y :=
+    lt_of_le_of_ne (Finset.sum_nonneg fun y _ => ha_nn y) (Ne.symm hSa)
+  -- Per-term: a·log(b·Σa/(a·Σb)) ≤ b·Σa/Σb - a
+  have hbound : ∀ y, (if a y = 0 then 0
+      else a y * Real.log (b y * (∑ y, a y) / (a y * (∑ y, b y)))) ≤
+      (if a y = 0 then 0 else b y * (∑ y, a y) / (∑ y, b y) - a y) := by
+    intro y; by_cases hay : a y = 0
+    · simp [hay]
+    · simp only [hay, ↓reduceIte]
+      exact log_sum_term_bound (lt_of_le_of_ne (ha_nn y) (Ne.symm hay))
+        (lt_of_le_of_ne (hb_nn y) (Ne.symm (habs y hay))) hSa_pos hSb
+  -- Sum of RHS ≤ 0; LHS rewrites to -Σ[a·log(a/b)] + Σa·log(Σa/Σb)
+  linarith [le_trans (Finset.sum_le_sum fun y _ => hbound y)
+    (log_sum_rhs_le a b hb_nn hSa_pos hSb),
+    log_sum_lhs_eq a b ha_nn habs hSa_pos hSb]
+
+/-- Log-sum inequality: (Σa)·log(Σa/Σb) ≤ Σ aᵢ·log(aᵢ/bᵢ).
+    Proved from log(x) ≤ x - 1, mirroring the Gibbs inequality proof. -/
+private theorem log_sum_inequality {β : Type*} [Fintype β]
+    (a b : β → ℝ) (ha_nn : ∀ y, 0 ≤ a y) (hb_nn : ∀ y, 0 ≤ b y)
+    (habs : ∀ y, a y ≠ 0 → b y ≠ 0)
+    (hSb : 0 < ∑ y, b y) :
+    (∑ y, a y) * Real.log ((∑ y, a y) / (∑ y, b y)) ≤
+      ∑ y, if a y = 0 then 0 else a y * Real.log (a y / b y) := by
+  by_cases hSa : ∑ y, a y = 0
+  · have ha0 : ∀ y, a y = 0 := fun y => le_antisymm
+      (le_trans (Finset.single_le_sum (fun y _ => ha_nn y) (Finset.mem_univ y))
+        (le_of_eq hSa)) (ha_nn y)
+    simp [hSa, ha0]
+  · exact log_sum_ineq_pos a b ha_nn hb_nn habs hSb hSa
+
+/-! ### KL Decrease Under Marginalization -/
+
+/-- Per-component bound for KL marginalization. When Σ_b g(a,b) = 0,
+    absolute continuity forces Σ_b f(a,b) = 0 and both KL terms vanish. -/
+private theorem kl_margin_term {A B : Type*} [Fintype A] [Fintype B]
+    (f g : A × B → ℝ) (hf_nn : ∀ ab, 0 ≤ f ab) (hg_nn : ∀ ab, 0 ≤ g ab)
+    (habs : ∀ ab, f ab ≠ 0 → g ab ≠ 0) (a : A) :
+    (if marginalFst f a = 0 then 0
+      else marginalFst f a * Real.log (marginalFst f a / marginalFst g a)) ≤
+    ∑ b, (if f (a, b) = 0 then 0
+      else f (a, b) * Real.log (f (a, b) / g (a, b))) := by
+  by_cases hfa : marginalFst f a = 0
+  · -- fA(a) = 0 ⟹ all f(a,b) = 0
+    have hzero : ∀ b, f (a, b) = 0 := fun b => le_antisymm
+      (le_trans (Finset.single_le_sum (fun b _ => hf_nn (a, b)) (Finset.mem_univ b))
+        (le_of_eq hfa)) (hf_nn (a, b))
+    simp [hfa, hzero]
+  · -- fA(a) > 0: gA(a) > 0 by contrapositive, then apply log_sum_inequality
+    have hga_pos : 0 < marginalFst g a := by
+      by_contra hga; push_neg at hga
+      have hga0 : marginalFst g a = 0 := le_antisymm hga
+        (Finset.sum_nonneg fun b _ => hg_nn (a, b))
+      have hg0 : ∀ b, g (a, b) = 0 := fun b => le_antisymm (le_trans
+        (Finset.single_le_sum (fun b _ => hg_nn (a, b)) (Finset.mem_univ b))
+        (le_of_eq hga0)) (hg_nn (a, b))
+      have hf0 : ∀ b, f (a, b) = 0 := fun b => by
+        by_contra hfab; exact absurd (hg0 b) (habs (a, b) hfab)
+      exact absurd (show marginalFst f a = 0 by simp [marginalFst, hf0]) hfa
+    simp only [hfa, ↓reduceIte]
+    exact log_sum_inequality (fun b => f (a, b)) (fun b => g (a, b))
+      (fun b => hf_nn (a, b)) (fun b => hg_nn (a, b))
+      (fun b hb => habs (a, b) hb) hga_pos
+
+/-- KL divergence decreases under marginalization. -/
+private theorem kl_marginalize_le {A B : Type*} [Fintype A] [Fintype B]
+    (f g : A × B → ℝ) (hf_nn : ∀ ab, 0 ≤ f ab) (hg_nn : ∀ ab, 0 ≤ g ab)
+    (habs : ∀ ab, f ab ≠ 0 → g ab ≠ 0) :
+    klDivergence (marginalFst f) (marginalFst g) ≤ klDivergence f g := by
+  unfold klDivergence
+  rw [show ∑ ab : A × B, (if f ab = 0 then 0 else f ab * Real.log (f ab / g ab)) =
+    ∑ a, ∑ b, (if f (a, b) = 0 then 0 else f (a, b) * Real.log (f (a, b) / g (a, b))) from
+      Fintype.sum_prod_type _]
+  exact Finset.sum_le_sum fun a _ => kl_margin_term f g hf_nn hg_nn habs a
+
+/-! ### Data Processing Inequality -/
+
+/-- Joint distribution pXYZ(x,y,c) = pXY(x,y)·K(c|y) on (α×γ) × β. -/
+private def dpiJoint {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) : (α × γ) × β → ℝ :=
+  fun ⟨⟨x, c⟩, y⟩ => pXY (x, y) * K.transition y c
+
+/-- Reference distribution qXYZ(x,y,c) = pX(x)·pY(y)·K(c|y). -/
+private def dpiRef {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) : (α × γ) × β → ℝ :=
+  fun ⟨⟨x, c⟩, y⟩ => marginalFst pXY x * marginalSnd pXY y * K.transition y c
+
+/-- dpiJoint is nonnegative. -/
+private theorem dpiJoint_nonneg {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    ∀ t, 0 ≤ dpiJoint pXY K t := by
+  intro ⟨⟨x, c⟩, y⟩; exact mul_nonneg (h_nn (x, y)) (K.nonneg y c)
+
+/-- dpiRef is nonnegative. -/
+private theorem dpiRef_nonneg {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    ∀ t, 0 ≤ dpiRef pXY K t := by
+  intro ⟨⟨x, c⟩, y⟩
+  exact mul_nonneg (mul_nonneg (Finset.sum_nonneg fun b _ => h_nn (x, b))
+    (Finset.sum_nonneg fun a _ => h_nn (a, y))) (K.nonneg y c)
+
+/-- Absolute continuity: dpiJoint ≠ 0 implies dpiRef ≠ 0. -/
+private theorem dpi_abs_cont {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    ∀ t, dpiJoint pXY K t ≠ 0 → dpiRef pXY K t ≠ 0 := by
+  intro ⟨⟨x, c⟩, y⟩ hne
+  simp only [dpiJoint] at hne
+  have hxy := left_ne_zero_of_mul hne
+  have hk := right_ne_zero_of_mul hne
+  -- pXY(x,y) > 0 implies pX(x) > 0 and pY(y) > 0
+  have hxy_pos := lt_of_le_of_ne (h_nn (x, y)) (Ne.symm hxy)
+  have hpx : marginalFst pXY x ≠ 0 := ne_of_gt (lt_of_lt_of_le hxy_pos
+    (Finset.single_le_sum (fun b _ => h_nn (x, b)) (Finset.mem_univ y)))
+  have hpy : marginalSnd pXY y ≠ 0 := ne_of_gt (lt_of_lt_of_le hxy_pos
+    (Finset.single_le_sum (fun a _ => h_nn (a, y)) (Finset.mem_univ x)))
+  simp only [dpiRef]; exact mul_ne_zero (mul_ne_zero hpx hpy) hk
+
+/-- Marginal of dpiJoint over β = pushforward pXZ. -/
+private theorem dpiJoint_margFst {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) :
+    marginalFst (dpiJoint pXY K) = pushforward pXY K := by
+  ext ⟨x, c⟩; simp [marginalFst, dpiJoint, pushforward]
+
+/-- Marginal of dpiRef over β = pX ⊗ pZ. -/
+private theorem dpiRef_margFst {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) :
+    marginalFst (dpiRef pXY K) =
+      fun ac => marginalFst pXY ac.1 * marginalSnd (pushforward pXY K) ac.2 := by
+  ext ⟨x, c⟩
+  -- Goal: Σ_y pX(x)·pY(y)·K(c|y) = pX(x) · pZ(c)
+  show ∑ y, marginalFst pXY x * marginalSnd pXY y * K.transition y c =
+    marginalFst pXY x * marginalSnd (pushforward pXY K) c
+  simp_rw [mul_assoc]; rw [← Finset.mul_sum, pushforward_marginalSnd]
+
+/-- K cancels in KL if-then-else: (if a·k=0 then 0 else a·k·log(a·k/(b·k)))
+    = k · (if a=0 then 0 else a·log(a/b)). -/
+private theorem kl_ite_mul_cancel {a b k : ℝ} (hk : 0 ≤ k) :
+    (if a * k = 0 then (0 : ℝ) else a * k * Real.log (a * k / (b * k))) =
+    k * (if a = 0 then 0 else a * Real.log (a / b)) := by
+  by_cases ha : a = 0
+  · simp [ha]
+  · by_cases hk0 : k = 0
+    · simp [hk0]
+    · simp only [mul_ne_zero ha hk0, ha, ↓reduceIte]
+      rw [mul_div_mul_right _ _ hk0]; ring
+
+/-- KL of dpiJoint vs dpiRef equals KL of pXY vs pX⊗pY (K cancels). -/
+private theorem dpi_kl_eq {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
+    (pXY : α × β → ℝ) (K : MarkovKernel β γ) (h_nn : ∀ ab, 0 ≤ pXY ab) :
+    klDivergence (dpiJoint pXY K) (dpiRef pXY K) =
+      klDivergence pXY (fun ab => marginalFst pXY ab.1 * marginalSnd pXY ab.2) := by
+  -- RHS as double sum
+  have rhs_eq : klDivergence pXY
+      (fun ab => marginalFst pXY ab.1 * marginalSnd pXY ab.2) =
+    ∑ x, ∑ y, (if pXY (x, y) = 0 then 0 else pXY (x, y) *
+      Real.log (pXY (x, y) / (marginalFst pXY x * marginalSnd pXY y))) := by
+    unfold klDivergence; exact Fintype.sum_prod_type _
+  rw [rhs_eq]; unfold klDivergence dpiJoint dpiRef
+  -- Rewrite (α×γ)×β sum as Σ_x Σ_c Σ_y
+  have hsplit : ∀ (F : (α × γ) × β → ℝ),
+      ∑ t, F t = ∑ x, ∑ c, ∑ y, F ((x, c), y) := fun F => by
+    simp only [Fintype.sum_prod_type]
+  rw [hsplit]
+  -- K cancels in the log ratio
+  simp_rw [kl_ite_mul_cancel (K.nonneg _ _)]
+  -- Swap c,y sums and collapse Σ_c K(c|y) = 1
+  congr 1; ext x; rw [Finset.sum_comm]
+  congr 1; ext y; rw [← Finset.sum_mul, K.sum_one, one_mul]
+
+/-- Data processing inequality: I(X;Z) ≤ I(X;Y) for Markov chain X → Y → Z.
+    Proof: define pXYZ = pXY·K on (α×γ)×β and qXYZ = pX·pY·K.
+    KL(pXYZ ‖ qXYZ) = I(X;Y) since K cancels. Marginalizing out β gives
+    KL(pXZ ‖ pX⊗pZ) = I(X;Z) ≤ KL(pXYZ ‖ qXYZ) by kl_marginalize_le. -/
+theorem data_processing_inequality {α β γ : Type*} [Fintype α] [Fintype β] [Fintype γ]
     (pXY : α × β → ℝ) (K : MarkovKernel β γ)
     (h_nn : ∀ ab, 0 ≤ pXY ab) (h_sum : ∑ ab, pXY ab = 1) :
-    mutualInfo (pushforward pXY K) ≤ mutualInfo pXY
+    mutualInfo (pushforward pXY K) ≤ mutualInfo pXY := by
+  rw [mutualInfo_eq_klDivergence _ (pushforward_nonneg pXY K h_nn),
+      mutualInfo_eq_klDivergence pXY h_nn]
+  -- Show LHS klDivergence = D_KL(margFst(dpiJoint) ‖ margFst(dpiRef))
+  have hlhs : klDivergence (pushforward pXY K)
+      (fun ac => marginalFst (pushforward pXY K) ac.1 *
+        marginalSnd (pushforward pXY K) ac.2) =
+    klDivergence (marginalFst (dpiJoint pXY K)) (marginalFst (dpiRef pXY K)) := by
+    rw [dpiJoint_margFst, dpiRef_margFst]
+    congr 1; ext ⟨x, _⟩; simp only; rw [pushforward_marginalFst]
+  rw [hlhs]
+  calc klDivergence (marginalFst (dpiJoint pXY K)) (marginalFst (dpiRef pXY K))
+      ≤ klDivergence (dpiJoint pXY K) (dpiRef pXY K) :=
+        kl_marginalize_le _ _ (dpiJoint_nonneg pXY K h_nn) (dpiRef_nonneg pXY K h_nn)
+          (dpi_abs_cont pXY K h_nn)
+    _ = klDivergence pXY (fun ab => marginalFst pXY ab.1 * marginalSnd pXY ab.2) :=
+        dpi_kl_eq pXY K h_nn
 
 end
 

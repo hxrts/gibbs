@@ -302,6 +302,98 @@ theorem channelCapacity_le_log_input {X Y : Type*} [Fintype X] [Fintype Y]
        sum_one := by simp }⟩
   exact ciSup_le fun d => h_bound d
 
+/-! ## DMC Joint Entropy Decomposition -/
+
+/-- Joint entropy of a DMC decomposes as H(X) + Σ_x p(x) H(W(·|x)).
+
+    For the DMC joint p(x,y) = p(x)W(y|x), the joint entropy splits into
+    the input entropy plus the conditional entropy, where H(Y|X) for a DMC
+    is Σ_x p(x) H(W(·|x)). -/
+private theorem dmc_joint_entropy_eq {X Y : Type*} [Fintype X] [Fintype Y]
+    (W : DMC X Y) (p : X → ℝ) (hp_nn : ∀ x, 0 ≤ p x) :
+    Gibbs.Hamiltonian.Entropy.shannonEntropy (jointDist W p) =
+      Gibbs.Hamiltonian.Entropy.shannonEntropy p +
+      ∑ x, p x *
+        Gibbs.Hamiltonian.Entropy.shannonEntropy (fun y => W.transition x y) := by
+  classical
+  unfold Gibbs.Hamiltonian.Entropy.shannonEntropy jointDist
+  -- rewrite product sum as double sum
+  have hprod : ∀ f : X × Y → ℝ,
+      ∑ ab : X × Y, f ab = ∑ x, ∑ y, f (x, y) := by
+    intro f; exact Fintype.sum_prod_type f
+  rw [hprod]
+  -- for each x, split the inner sum
+  have hterm : ∀ x,
+      ∑ y, (if p x * W.transition x y = 0 then 0
+        else p x * W.transition x y * Real.log (p x * W.transition x y)) =
+      (if p x = 0 then 0 else p x * Real.log (p x)) +
+      p x * ∑ y, (if W.transition x y = 0 then 0
+        else W.transition x y * Real.log (W.transition x y)) := by
+    intro x
+    by_cases hpx : p x = 0
+    · -- p(x) = 0: all joint terms vanish
+      simp [hpx]
+    · -- p(x) > 0: split log(p*W) = log p + log W
+      have hpx_pos : 0 < p x :=
+        lt_of_le_of_ne (hp_nn x) (Ne.symm hpx)
+      simp only [hpx, ↓reduceIte]
+      -- Σ_y [if p*W=0 then 0 else p*W*(log p + log W)]
+      have hinner : ∀ y,
+          (if p x * W.transition x y = 0 then 0
+            else p x * W.transition x y *
+              Real.log (p x * W.transition x y)) =
+          p x * W.transition x y * Real.log (p x) +
+          p x * (if W.transition x y = 0 then 0
+            else W.transition x y * Real.log (W.transition x y)) := by
+        intro y
+        by_cases hwy : W.transition x y = 0
+        · simp [hwy]
+        · have hwy_pos : 0 < W.transition x y :=
+            lt_of_le_of_ne (W.transition_nonneg x y) (Ne.symm hwy)
+          have hne : p x * W.transition x y ≠ 0 :=
+            ne_of_gt (mul_pos hpx_pos hwy_pos)
+          simp only [hne, hwy, ↓reduceIte]
+          rw [Real.log_mul (ne_of_gt hpx_pos) (ne_of_gt hwy_pos)]
+          ring
+      simp_rw [hinner, Finset.sum_add_distrib, ← Finset.sum_mul,
+        ← Finset.mul_sum, W.transition_sum_one, mul_one]
+  simp_rw [hterm, Finset.sum_add_distrib]
+  simp [Finset.mul_sum, Finset.sum_neg_distrib]
+  ring
+
+/-- Mutual information for a DMC: I(X;Y) = H(Y) - Σ_x p(x) H(W(·|x)).
+
+    Uses the identity I = H(X) + H(Y) - H(X,Y) and the DMC joint entropy
+    decomposition H(X,Y) = H(X) + Σ_x p(x) H(W(·|x)). -/
+private theorem dmc_mutualInfo_eq {X Y : Type*} [Fintype X] [Fintype Y]
+    (W : DMC X Y) (d : Gibbs.Hamiltonian.Entropy.Distribution X) :
+    channelMutualInfo W d.pmf =
+      Gibbs.Hamiltonian.Entropy.shannonEntropy (outputDist W d.pmf) -
+      ∑ x, d.pmf x *
+        Gibbs.Hamiltonian.Entropy.shannonEntropy (fun y => W.transition x y) := by
+  unfold channelMutualInfo Gibbs.Hamiltonian.Entropy.mutualInfo
+  rw [jointDist_marginalFst W d.pmf, jointDist_marginalSnd W d.pmf,
+    dmc_joint_entropy_eq W d.pmf d.nonneg]
+  ring
+
+/-! ## Capacity as Free-Energy Dual -/
+
+/-- Capacity as a variational free-energy dual.
+
+    Rewrites C(W) = sup_d I(d;W) using the DMC identity
+    I = H(output) - Σ_x d(x) H(W(·|x)). -/
+theorem capacity_as_free_energy_dual {X Y : Type*} [Fintype X] [Fintype Y]
+    [Nonempty X] [Nonempty Y] (W : DMC X Y) :
+    channelCapacity W =
+      ⨆ (d : Gibbs.Hamiltonian.Entropy.Distribution X),
+        Gibbs.Hamiltonian.Entropy.shannonEntropy (outputDist W d.pmf) -
+        ∑ x, d.pmf x *
+          Gibbs.Hamiltonian.Entropy.shannonEntropy (fun y => W.transition x y) := by
+  unfold channelCapacity
+  congr 1
+  funext d
+  exact dmc_mutualInfo_eq W d
+
 /-! ## Binary Symmetric Channel -/
 
 /-- Binary symmetric channel with crossover probability ε. -/
@@ -313,28 +405,123 @@ def BSC (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1) : DMC Bool Bool where
     · simp [hxy, hε₁, sub_nonneg]
     · simp [hxy, hε₀]
   transition_sum_one := by
-    intro x
-    cases x <;> simp [add_comm]
+    intro x; cases x <;> simp [add_comm]
+
+/-- Each BSC row has Shannon entropy equal to binary entropy. -/
+private lemma bsc_row_entropy (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1)
+    (x : Bool) :
+    Gibbs.Hamiltonian.Entropy.shannonEntropy
+      (fun y => (BSC ε hε₀ hε₁).transition x y) =
+    Gibbs.Hamiltonian.Entropy.binaryEntropy ε := by
+  classical
+  unfold Gibbs.Hamiltonian.Entropy.shannonEntropy
+    Gibbs.Hamiltonian.Entropy.binaryEntropy BSC
+  -- rewrite (1 - ε = 0) ↔ (ε = 1) for if-condition matching
+  have h1e : (1 - ε = 0) = (ε = 1) :=
+    propext ⟨by intro h; linarith, by intro h; linarith⟩
+  cases x <;> simp [Fintype.univ_bool, h1e] <;> ring
+
+/-- BSC conditional entropy sum: Σ_x d(x) H(W(·|x)) = H₂(ε). -/
+private lemma bsc_condEntropy_sum (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1)
+    (d : Gibbs.Hamiltonian.Entropy.Distribution Bool) :
+    ∑ x, d.pmf x *
+      Gibbs.Hamiltonian.Entropy.shannonEntropy
+        (fun y => (BSC ε hε₀ hε₁).transition x y) =
+    Gibbs.Hamiltonian.Entropy.binaryEntropy ε := by
+  simp_rw [bsc_row_entropy]
+  rw [← Finset.sum_mul, d.sum_one, one_mul]
+
+/-- Uniform output from BSC with uniform input. -/
+private lemma bsc_uniform_output (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1) :
+    outputDist (BSC ε hε₀ hε₁) (fun _ : Bool => 1/2) =
+      fun _ : Bool => 1/2 := by
+  funext y; unfold outputDist BSC
+  cases y <;> simp [Fintype.univ_bool] <;> ring
+
+/-- Shannon entropy of uniform Bool is log 2. -/
+private lemma shannonEntropy_uniform_bool :
+    Gibbs.Hamiltonian.Entropy.shannonEntropy (fun _ : Bool => (1 : ℝ)/2) =
+      Real.log 2 := by
+  unfold Gibbs.Hamiltonian.Entropy.shannonEntropy
+  simp [Fintype.univ_bool, Real.log_inv]
+
+/-- Helper: BSC output distribution sums to 1. -/
+private lemma bsc_output_sum (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1)
+    (d : Gibbs.Hamiltonian.Entropy.Distribution Bool) :
+    ∑ y, outputDist (BSC ε hε₀ hε₁) d.pmf y = 1 := by
+  simp [outputDist, BSC, Fintype.univ_bool]
+  have hsum := d.sum_one
+  simp [Fintype.univ_bool] at hsum
+  linarith
+
+/-- Helper: BSC output distribution is nonneg. -/
+private lemma bsc_output_nonneg (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1)
+    (d : Gibbs.Hamiltonian.Entropy.Distribution Bool) :
+    ∀ y, 0 ≤ outputDist (BSC ε hε₀ hε₁) d.pmf y :=
+  fun y => Finset.sum_nonneg fun x _ =>
+    mul_nonneg (d.nonneg x) ((BSC ε hε₀ hε₁).transition_nonneg x y)
 
 /-- BSC capacity formula: C = log 2 - H₂(ε). -/
-axiom bsc_capacity (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1) :
+theorem bsc_capacity (ε : ℝ) (hε₀ : 0 ≤ ε) (hε₁ : ε ≤ 1) :
     channelCapacity (BSC ε hε₀ hε₁) =
-      Real.log 2 - Gibbs.Hamiltonian.Entropy.binaryEntropy ε
+      Real.log 2 - Gibbs.Hamiltonian.Entropy.binaryEntropy ε := by
+  classical
+  -- Rewrite via free-energy dual: C = sup_d [H(output) - Σ_x d(x) H(W(·|x))]
+  rw [capacity_as_free_energy_dual]
+  -- Simplify conditional entropy to H₂(ε)
+  have hsimpl (d : Gibbs.Hamiltonian.Entropy.Distribution Bool) :
+      Gibbs.Hamiltonian.Entropy.shannonEntropy
+          (outputDist (BSC ε hε₀ hε₁) d.pmf) -
+        ∑ x, d.pmf x * Gibbs.Hamiltonian.Entropy.shannonEntropy
+          (fun y => (BSC ε hε₀ hε₁).transition x y) =
+      Gibbs.Hamiltonian.Entropy.shannonEntropy
+          (outputDist (BSC ε hε₀ hε₁) d.pmf) -
+        Gibbs.Hamiltonian.Entropy.binaryEntropy ε := by
+    rw [bsc_condEntropy_sum]
+  simp_rw [hsimpl]
+  -- need Nonempty instance for ciSup
+  haveI : Nonempty (Gibbs.Hamiltonian.Entropy.Distribution Bool) :=
+    ⟨{ pmf := fun _ => 1/2, nonneg := by intro _; norm_num,
+       sum_one := by simp [Fintype.univ_bool] }⟩
+  apply le_antisymm
+  · -- upper bound: H(output) ≤ log |Bool| = log 2
+    apply ciSup_le; intro d
+    have hle := Gibbs.Hamiltonian.Entropy.shannonEntropy_le_log_card
+      (outputDist (BSC ε hε₀ hε₁) d.pmf)
+      (bsc_output_nonneg ε hε₀ hε₁ d) (bsc_output_sum ε hε₀ hε₁ d)
+    have hcard : (Fintype.card Bool : ℝ) = 2 := by
+      simp [Fintype.card_bool]
+    linarith [hcard ▸ hle]
+  · -- lower bound: uniform input achieves log 2
+    let d0 : Gibbs.Hamiltonian.Entropy.Distribution Bool :=
+      { pmf := fun _ => 1/2
+        nonneg := by intro _; norm_num
+        sum_one := by simp [Fintype.univ_bool] }
+    have hout : outputDist (BSC ε hε₀ hε₁) d0.pmf = fun _ => 1/2 :=
+      bsc_uniform_output ε hε₀ hε₁
+    -- bdd above witness for ciSup
+    have hbdd : BddAbove (Set.range fun d : Gibbs.Hamiltonian.Entropy.Distribution Bool =>
+        Gibbs.Hamiltonian.Entropy.shannonEntropy
+          (outputDist (BSC ε hε₀ hε₁) d.pmf) -
+        Gibbs.Hamiltonian.Entropy.binaryEntropy ε) := by
+      refine ⟨Real.log 2 - Gibbs.Hamiltonian.Entropy.binaryEntropy ε, ?_⟩
+      rintro _ ⟨d', rfl⟩
+      have hle := Gibbs.Hamiltonian.Entropy.shannonEntropy_le_log_card
+        (outputDist (BSC ε hε₀ hε₁) d'.pmf)
+        (bsc_output_nonneg ε hε₀ hε₁ d') (bsc_output_sum ε hε₀ hε₁ d')
+      have hcard : (Fintype.card Bool : ℝ) = 2 := by
+        simp [Fintype.card_bool]
+      linarith [hcard ▸ hle]
+    exact le_ciSup_of_le hbdd d0 (by rw [hout, shannonEntropy_uniform_bool])
 
 /-- BSC capacity at ε = 1/2 is zero. -/
-axiom bsc_capacity_half :
-    channelCapacity (BSC (1/2) (by linarith) (by linarith)) = 0
-
-/-! ## Capacity as Free-Energy Dual -/
-
-/-- Capacity as a variational free-energy dual. -/
-axiom capacity_as_free_energy_dual {X Y : Type*} [Fintype X] [Fintype Y]
-    [Nonempty X] [Nonempty Y] (W : DMC X Y) :
-    channelCapacity W =
-      ⨆ (d : Gibbs.Hamiltonian.Entropy.Distribution X),
-        Gibbs.Hamiltonian.Entropy.shannonEntropy (outputDist W d.pmf) -
-        ∑ x, d.pmf x *
-          Gibbs.Hamiltonian.Entropy.shannonEntropy (fun y => W.transition x y)
+theorem bsc_capacity_half :
+    channelCapacity (BSC (1/2) (by linarith) (by linarith)) = 0 := by
+  rw [bsc_capacity]
+  unfold Gibbs.Hamiltonian.Entropy.binaryEntropy
+  have h : Real.log (1/2 : ℝ) = -Real.log 2 := by
+    rw [one_div, Real.log_inv]
+  norm_num [h]; ring
 
 end
 

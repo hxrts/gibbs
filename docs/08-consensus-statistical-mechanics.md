@@ -1,6 +1,6 @@
 # Consensus as Statistical Mechanics
 
-This document presents the synthesis at the heart of Gibbs: consensus protocols are statistical-mechanical systems. For the physical foundations, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field-dynamics.md). For the information-theoretic bridge, see [Information Theory and Channels](05-information-theory.md).
+This document presents the synthesis at the heart of Gibbs: consensus protocols are statistical-mechanical systems. For the physical foundations, see [Hamiltonian Mechanics](02-hamiltonian-mechanics.md) and [Mean-Field Dynamics](04-mean-field.md). For the information-theoretic bridge, see [Information Theory and Channels](06-information-theory.md).
 
 ## The Analogy
 

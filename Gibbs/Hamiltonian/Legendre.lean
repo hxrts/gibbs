@@ -47,6 +47,11 @@ def legendre (f : Config n → ℝ) : Config n → ℝ :=
 /-- Alternative notation emphasizing the dual nature. -/
 notation:max f "∗" => legendre f
 
+/-- Legendre transform restricted to a domain S.
+    f*_S(p) = sSup { ⟨p, x⟩ - f(x) | x ∈ S } -/
+def legendreOn (f : Config n → ℝ) (S : Set (Config n)) : Config n → ℝ :=
+  fun p => sSup ((fun x => ⟪p, x⟫_ℝ - f x) '' S)
+
 /-! ## Bregman Divergence -/
 
 /-- The Bregman divergence induced by a differentiable convex function f.

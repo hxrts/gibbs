@@ -380,25 +380,21 @@ theorem kl_eq_bregman_negEntropy (n : ℕ) (p q : Fin n → ℝ)
         inner ℝ (gradient (negEntropyConfig n) (toConfig q)) (toConfig p - toConfig q) := by
           simp [hneg_p, hneg_q, hinner]
 
-/-- KL nonnegativity via Bregman divergence. -/
-axiom kl_nonneg_via_bregman (n : ℕ) (p q : Fin n → ℝ)
+/-- KL nonnegativity via Bregman divergence.
+
+    Delegates to the direct Gibbs inequality `klDivergence_nonneg`. -/
+theorem kl_nonneg_via_bregman (n : ℕ) (p q : Fin n → ℝ)
     (hp_nn : ∀ i, 0 ≤ p i) (hp_sum : ∑ i, p i = 1)
     (hq_pos : ∀ i, 0 < q i) (hq_sum : ∑ i, q i = 1) :
-    0 ≤ Gibbs.Hamiltonian.Entropy.klDivergence p q
+    0 ≤ Gibbs.Hamiltonian.Entropy.klDivergence p q :=
+  Gibbs.Hamiltonian.Entropy.klDivergence_nonneg p q hp_nn hp_sum
+    (fun i => le_of_lt (hq_pos i)) hq_sum (fun _ _ => ne_of_gt (hq_pos _))
 
-/-! ## Legendre Dual of Negative Entropy -/
+/-! ## Simplex and Softmax -/
 
-/-- The Legendre dual of negative entropy is log-sum-exp.
-
-    PROVIDED SOLUTION
-    The upper bound follows from Jensen's inequality: for any distribution x
-    on the simplex, Σ xᵢ θᵢ - Σ xᵢ log xᵢ ≤ log(Σ exp θᵢ). The lower bound
-    is attained at the softmax distribution xᵢ = exp(θᵢ)/Σ exp(θⱼ), where
-    direct computation gives ⟪θ, x⟫ + H(x) = log(Σ exp θᵢ). -/
-theorem legendre_negEntropy_eq_logSumExp (n : ℕ) [NeZero n] (θ : Config n) :
-    legendre (negEntropyConfig n) θ =
-      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
-  sorry
+/-- The probability simplex in Config n. -/
+private def simplex (n : ℕ) : Set (Config n) :=
+  { x | (∀ i, 0 ≤ (fromConfig x) i) ∧ ∑ i, (fromConfig x) i = 1 }
 
 /-- Softmax distribution. -/
 def softmax (n : ℕ) (θ : Fin n → ℝ) : Fin n → ℝ :=
@@ -436,11 +432,163 @@ theorem softmax_sum_one (n : ℕ) [NeZero n] (θ : Fin n → ℝ) :
           (f := fun i => Real.exp (θ i)) (a := ∑ j, Real.exp (θ j))).symm
     _ = 1 := by field_simp [hne]
 
-/-- Free energy is a scaled Legendre dual of negative entropy. -/
-axiom freeEnergy_eq_scaled_legendre_dual (n : ℕ) [NeZero n]
+/-- Softmax of θ (as a Config) lies in the simplex. -/
+private lemma softmax_mem_simplex (n : ℕ) [NeZero n] (θ : Fin n → ℝ) :
+    toConfig (softmax n θ) ∈ simplex n := by
+  refine ⟨fun i => ?_, ?_⟩
+  · -- nonneg: softmax components are nonneg
+    simp [toConfig, fromConfig]
+    exact softmax_nonneg n θ i
+  · -- sum-one: softmax sums to 1
+    simp [toConfig, fromConfig]
+    exact softmax_sum_one n θ
+
+/-! ## Legendre Dual of Negative Entropy -/
+
+/-- Evaluating the objective at softmax gives log-sum-exp.
+
+    Direct computation: ⟪θ, softmax(θ)⟫ - Σ softmax(θ)ᵢ log softmax(θ)ᵢ
+    simplifies to log(Σ exp θᵢ). -/
+private lemma softmax_value (n : ℕ) [NeZero n] (θ : Config n) :
+    ⟪θ, toConfig (softmax n (fromConfig θ))⟫_ℝ -
+      negEntropyConfig n (toConfig (softmax n (fromConfig θ))) =
+    Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
+  unfold negEntropyConfig softmax toConfig fromConfig
+  norm_num [← Finset.sum_div, Real.exp_ne_zero,
+    ne_of_gt (show 0 < ∑ i : Fin n, Real.exp (fromConfig θ i) from
+      Finset.sum_pos (fun _ _ => Real.exp_pos _)
+        ⟨⟨0, NeZero.pos n⟩, Finset.mem_univ _⟩)]
+  ring
+  simp +decide [← Finset.mul_sum _ _ _, ← Finset.sum_mul,
+    mul_assoc, mul_comm, mul_left_comm, Real.log_mul,
+    Real.exp_ne_zero,
+    ne_of_gt (Finset.sum_pos (fun i _ => Real.exp_pos (θ i))
+      Finset.univ_nonempty)]
+  simp +decide [← mul_assoc, ← Finset.sum_mul, Real.exp_ne_zero,
+    Finset.sum_add_distrib, mul_add, add_mul,
+    Finset.mul_sum _ _ _, Finset.sum_add_distrib, mul_add,
+    add_mul, mul_assoc, mul_comm, mul_left_comm,
+    Finset.sum_mul _ _ _,
+    inv_mul_cancel₀,
+    ne_of_gt (Finset.sum_pos (fun i _ => Real.exp_pos (θ i))
+      Finset.univ_nonempty)]
+  ring!
+  simp +decide [mul_assoc, mul_comm, mul_left_comm,
+    Finset.mul_sum _ _ _, inner]
+
+/-- Jensen upper bound: for any x in the simplex, the objective
+    ⟪θ, x⟫ - negEntropy(x) is bounded by log(Σ exp θᵢ). -/
+private lemma upper_bound_simplex (n : ℕ) [NeZero n]
+    (θ : Config n) (x : Config n) (hx : x ∈ simplex n) :
+    ⟪θ, x⟫_ℝ - negEntropyConfig n x ≤
+      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
+  -- Jensen's inequality applied to concave log
+  have h_jensen :
+      ∑ i : Fin n, (fromConfig x) i *
+        Real.log (Real.exp ((fromConfig θ) i) / (fromConfig x) i) ≤
+      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
+    -- inner Jensen: weighted log ≤ log of weighted sum
+    have h_inner :
+        ∑ i : Fin n, (fromConfig x) i *
+          Real.log (Real.exp ((fromConfig θ) i) / (fromConfig x) i) ≤
+        Real.log (∑ i : Fin n, (fromConfig x) i *
+          (Real.exp ((fromConfig θ) i) / (fromConfig x) i)) := by
+      have h_concave : ConcaveOn ℝ (Set.Ioi 0) Real.log :=
+        StrictConcaveOn.concaveOn strictConcaveOn_log_Ioi
+      -- filter to support of x
+      have h_zero_term :
+          ∑ i : Fin n, (fromConfig x i) *
+            Real.log (Real.exp ((fromConfig θ) i) / (fromConfig x) i) =
+          ∑ i ∈ Finset.univ.filter (fun i => fromConfig x i ≠ 0),
+            (fromConfig x i) *
+              Real.log (Real.exp ((fromConfig θ) i) / (fromConfig x) i) := by
+        rw [Finset.sum_filter_of_ne]; aesop
+      have h_j :
+          ∑ i ∈ Finset.univ.filter (fun i => fromConfig x i ≠ 0),
+            (fromConfig x i) *
+              Real.log (Real.exp ((fromConfig θ) i) / (fromConfig x) i) ≤
+          Real.log (∑ i ∈ Finset.univ.filter (fun i => fromConfig x i ≠ 0),
+            (fromConfig x i) *
+              (Real.exp ((fromConfig θ) i) / (fromConfig x) i)) := by
+        apply_rules [h_concave.le_map_sum]
+        · exact fun i _ => hx.1 i
+        · rw [← hx.2, Finset.sum_filter_of_ne]; aesop
+        · exact fun i hi =>
+            div_pos (Real.exp_pos _)
+              (lt_of_le_of_ne (hx.1 i) (Ne.symm (by aesop)))
+      convert h_j using 1
+      rw [Finset.sum_filter_of_ne]; aesop
+    -- simplify: Σ xᵢ (exp θᵢ / xᵢ) = Σ exp θᵢ
+    refine le_trans h_inner <| Real.log_le_log ?_ ?_
+    · -- positivity of weighted sum
+      obtain ⟨i, hi⟩ : ∃ i, (fromConfig x) i > 0 := by
+        exact not_forall_not.mp fun h' => by
+          have := hx.2 ▸ Finset.sum_nonpos fun i _ =>
+            le_of_not_gt fun hi => h' i hi
+          norm_num at this
+      exact lt_of_lt_of_le
+        (mul_pos hi (div_pos (Real.exp_pos _) hi))
+        (Finset.single_le_sum
+          (fun i _ => mul_nonneg (hx.1 i)
+            (div_nonneg (Real.exp_nonneg _) (hx.1 i)))
+          (Finset.mem_univ i))
+    · exact Finset.sum_le_sum fun i _ => by
+        by_cases hi : fromConfig x i = 0
+        · simp +decide [hi]; positivity
+        · simp +decide [hi, mul_div_cancel₀]
+  -- convert Jensen bound to objective bound
+  convert h_jensen using 1
+  norm_num [negEntropyConfig, Real.log_div, Finset.sum_add_distrib, mul_comm]
+  rw [show (Inner.inner ℝ θ x : ℝ) =
+      ∑ i, fromConfig θ i * fromConfig x i from ?_]
+  · rw [← Finset.sum_sub_distrib]
+    refine' Finset.sum_congr rfl fun i _ => _
+    by_cases hi : fromConfig x i = 0
+    · simp +decide [hi, Real.log_div, Real.exp_ne_zero]
+    · simp +decide [hi, Real.log_div, Real.exp_ne_zero]; ring
+  · exact Finset.sum_congr rfl fun _ _ => mul_comm _ _
+
+/-- The Legendre dual of negative entropy (on the simplex) is log-sum-exp.
+
+    The upper bound follows from Jensen's inequality: for any distribution x
+    on the simplex, Σ xᵢ θᵢ - Σ xᵢ log xᵢ ≤ log(Σ exp θᵢ). The lower bound
+    is attained at the softmax distribution xᵢ = exp(θᵢ)/Σ exp(θⱼ), where
+    direct computation gives ⟪θ, x⟫ + H(x) = log(Σ exp θᵢ). -/
+theorem legendre_negEntropy_eq_logSumExp (n : ℕ) [NeZero n] (θ : Config n) :
+    Gibbs.Hamiltonian.legendreOn (negEntropyConfig n) (simplex n) θ =
+      Real.log (∑ i : Fin n, Real.exp ((fromConfig θ) i)) := by
+  refine' le_antisymm (csSup_le _ _) (le_csSup _ _)
+  · -- image is nonempty
+    exact ⟨_, ⟨toConfig (softmax n (fromConfig θ)),
+      softmax_mem_simplex n (fromConfig θ), rfl⟩⟩
+  · -- upper bound: every element ≤ log-sum-exp
+    rintro _ ⟨x, hx, rfl⟩
+    exact upper_bound_simplex n θ x hx
+  · -- bounded above
+    have h_bdd : ∀ x ∈ simplex n,
+        ⟪θ, x⟫_ℝ - negEntropyConfig n x ≤
+          Real.log (∑ i, Real.exp ((fromConfig θ) i)) :=
+      fun x hx => upper_bound_simplex n θ x hx
+    exact ⟨_, Set.forall_mem_image.2 h_bdd⟩
+  · -- lower bound: softmax attains log-sum-exp
+    use toConfig (softmax n (fromConfig θ))
+    exact ⟨softmax_mem_simplex n (fromConfig θ),
+      softmax_value n θ⟩
+
+/-- Free energy is a scaled Legendre dual of negative entropy.
+
+    Proof: the Legendre dual at θ = -βH gives log(Σ exp(-βHᵢ)) = log Z.
+    Then -(1/β) log Z = F by definition of free energy. -/
+theorem freeEnergy_eq_scaled_legendre_dual (n : ℕ) [NeZero n]
     (H : Fin n → ℝ) (β : ℝ) (hβ : 0 < β) :
     PartitionFunction.freeEnergy H β =
-      -(1/β) * legendre (negEntropyConfig n) (toConfig (fun i => -β * H i))
+      -(1/β) * Gibbs.Hamiltonian.legendreOn (negEntropyConfig n) (simplex n)
+        (toConfig (fun i => -β * H i)) := by
+  -- rewrite Legendre dual using the log-sum-exp identity
+  rw [legendre_negEntropy_eq_logSumExp]
+  -- both sides are -(1/β) * log(Σ exp(-β * H i))
+  unfold PartitionFunction.freeEnergy PartitionFunction.partitionFunction
+  simp [toConfig, fromConfig]
 
 end
 
