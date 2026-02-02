@@ -64,31 +64,30 @@ summary:
 
     echo "Wrote $out"
 
-# Generate transient JS files for mdbook build
-_gen-js:
+# Generate transient build assets (mermaid, mathjax theme override)
+_gen-assets:
     #!/usr/bin/env bash
     set -euo pipefail
     mdbook-mermaid install . > /dev/null 2>&1 || true
     # Patch mermaid-init.js with null guards for mdbook 0.5.x theme buttons
     sed -i.bak 's/document\.getElementById(\(.*\))\.addEventListener/const el = document.getElementById(\1); if (el) el.addEventListener/' mermaid-init.js && rm -f mermaid-init.js.bak
-    # MathJax v2 config for inline $ delimiters
-    cat > mathjax-config.js << 'JSEOF'
-    MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true,
-      },
-    });
-    MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
-    JSEOF
+    # Generate theme/index.hbs with MathJax v2 inline $ config injected before MathJax loads
+    mkdir -p theme
+    mdbook init --theme /tmp/mdbook-theme-gen <<< $'n\n' > /dev/null 2>&1
+    sed 's|<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>|<script>window.MathJax = { tex2jax: { inlineMath: [["$","$"],["\\\\(","\\\\)"]], displayMath: [["$$","$$"],["\\\\[","\\\\]"]], processEscapes: true } };</script>\n        <script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>|' /tmp/mdbook-theme-gen/theme/index.hbs > theme/index.hbs
+    rm -rf /tmp/mdbook-theme-gen
+
+# Clean transient build assets
+_clean-assets:
+    rm -f mermaid-init.js mermaid.min.js
+    rm -rf theme
 
 # Build the book after regenerating the summary
-book: summary _gen-js
-    mdbook build && rm -f mermaid-init.js mermaid.min.js mathjax-config.js
+book: summary _gen-assets
+    mdbook build && just _clean-assets
 
 # Serve locally with live reload
-serve: summary _gen-js
+serve: summary _gen-assets
     #!/usr/bin/env bash
-    trap 'rm -f mermaid-init.js mermaid.min.js mathjax-config.js' EXIT
+    trap 'just _clean-assets' EXIT
     mdbook serve --open
