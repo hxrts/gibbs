@@ -8,7 +8,7 @@ The project is organized into four layers that share a common foundation in `Ses
 
 ```mermaid
 graph TD
-    S[Session.lean] --> H[Hamiltonian]
+    S[Session] --> H[Hamiltonian]
     S --> M[MeanField]
     S --> C[ContinuumField]
     S --> Co[Consensus]

@@ -66,24 +66,11 @@ When no gap exists ($\Delta F = 0$), competing histories coexist at comparable f
 
 Consensus protocols fall into three universality classes determined by their gap structure.
 
-```mermaid
-graph TD
-    subgraph "Class I: Gapless"
-        N[Nakamoto]
-    end
-    subgraph "Class II: Gapped"
-        B[BFT / PBFT / Tendermint]
-    end
-    subgraph "Class III: Hybrid"
-        H[Fast finality + BFT fallback]
-    end
-```
-
-Class I (gapless) protocols like Nakamoto consensus have no hard safety gap. The longest-chain rule produces metastable ordering. Reversal probability decays geometrically with confirmation depth $k$ (`reorgProbability_succ_le`) but never reaches zero. There is no finality.
-
-Class II (gapped) protocols like BFT with quorum intersection have a deterministic safety gap. Once a quorum certificate forms, alternative histories are forbidden. The gap scales with $N$, providing finality. The `quorum_intersection_example` theorem instantiates this for $N = 3f+1$.
-
-Class III (hybrid) protocols combine fast probabilistic finality with a BFT fallback. Rare but nonzero violations can occur in the fast path.
+| Class | Gap | Finality | Examples |
+|---|---|---|---|
+| I: Gapless | No safety gap | Probabilistic only. Reversal probability decays geometrically with confirmation depth $k$ but never reaches zero. | Nakamoto |
+| II: Gapped | Deterministic safety gap | Deterministic. Once a quorum certificate forms, alternative histories are forbidden. Gap scales with $N$. | BFT, PBFT, Tendermint |
+| III: Hybrid | Fast path gapless, fallback gapped | Probabilistic fast path with deterministic BFT fallback. Rare violations possible in fast path. | Fast finality + BFT fallback |
 
 The `classOf` function in `Consensus/UniversalityClasses.lean` classifies protocols based on gap and tunneling flags. Microstructural details differ across protocols within a class. Large-scale behavior does not.
 

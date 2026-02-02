@@ -1,6 +1,12 @@
 # Information Theory and Channels
 
-This document covers the information-theoretic machinery in Gibbs. Shannon entropy, KL divergence, and channel capacity provide the language for reasoning about communication under noise. These concepts connect to convex duality through the entropy-Bregman correspondence, and to consensus through the coding-theoretic bridge. See [Convex Duality and Bregman Divergence](03-convex-duality.md) for the duality perspective and [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md) for the application to agreement protocols.
+Every physical system and every distributed protocol faces the same problem: communicating reliably through a noisy medium. A sensor reading corrupted by thermal fluctuations, a message corrupted by a faulty network link, and a vote corrupted by a Byzantine node are all instances of the same mathematical situation. Information theory provides the universal language for reasoning about these problems.
+
+This chapter develops that language for Gibbs. Entropy measures how much uncertainty a distribution carries. KL divergence measures how different one distribution is from another, connecting to the Bregman divergence from Chapter 3. Channel capacity quantifies how much reliable information can pass through a noisy channel. Error-correcting codes achieve that capacity by creating energy gaps between valid codewords, the same gaps that reappear as fault tolerance thresholds in consensus (Chapter 7).
+
+The key insight is that coding theory is the non-interactive special case of consensus. A code has a single sender and one round of communication. Consensus adds interaction and adaptive adversaries, which tightens the achievable threshold from $1/2$ to $1/3$. But the underlying structure, energy gaps between macrostates, is identical.
+
+For the convex duality perspective on entropy, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to agreement protocols, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
 
 ## Entropy and KL Divergence
 
@@ -19,6 +25,8 @@ The Gibbs inequality states $D_{\mathrm{KL}}(p \| q) \geq 0$, proved in `klDiver
 Mutual information $I(X; Y)$ quantifies shared information between two random variables. It decomposes as $I(X; Y) = H(X) - H(X|Y)$, where $H(X|Y)$ is conditional entropy. The theorem `condEntropy_le_entropy` shows conditioning cannot increase entropy. Mutual information is symmetric: `mutualInfo_symm`.
 
 ## Discrete Memoryless Channels
+
+A channel models any process that corrupts data in transit. The sender picks an input symbol, noise acts on it, and the receiver observes a (possibly different) output symbol.
 
 A discrete memoryless channel (DMC) is a stochastic matrix $W(y|x)$ mapping input symbols to output symbols. The `DMC` structure stores this matrix with the constraint that each row sums to one.
 
@@ -42,7 +50,7 @@ The BSC is the channel-theoretic model for random bit corruption. In the consens
 
 ## The Coding Bridge
 
-Error-correcting codes are the static (non-interactive) case of the consensus framework. A code of length $N$ encodes messages into codewords. The minimum Hamming distance $d_{\min}$ between distinct codewords determines correction capability.
+This section makes precise the connection between coding theory and consensus that the introduction previewed. Error-correcting codes are the static (non-interactive) case of the consensus framework. A code of length $N$ encodes messages into codewords. The minimum Hamming distance $d_{\min}$ between distinct codewords determines correction capability.
 
 Unique decoding succeeds when the number of errors $t$ satisfies $2t < d_{\min}$. The theorem `unique_decoding_of_minDistance` in `CodingDistance.lean` formalizes this. Hamming distance instantiates the `EnergyDistance` class, and `energyGap_singleton_eq_dist` shows the energy gap between singleton codeword sets equals their distance.
 
@@ -50,12 +58,12 @@ The repetition code encodes one bit as $N$ identical copies. Majority vote decod
 
 ## Gaussian Channels and Spatial Capacity
 
-The Gaussian channel adds noise with variance $\sigma^2$. Its capacity under power constraint $P$ is:
+Continuous-valued signals face continuous-valued noise. The Gaussian channel adds noise with variance $\sigma^2$. Its capacity under power constraint $P$ is:
 
 $$C = \frac{1}{2} \log\left(1 + \frac{P}{\sigma^2}\right)$$
 
 Capacity is nonneg for nonneg power (`gaussianCapacity_nonneg`), monotone decreasing in noise variance (`gaussianCapacity_antitone_variance`), and monotone increasing in power (`gaussianCapacity_monotone_power`).
 
-Noise variance and inverse temperature are interchangeable through the mapping $\beta = 1/(2\sigma^2)$. The round-trip identity `noiseToInvTemp_invTempToNoise` confirms this bijection. Higher inverse temperature (lower noise) means higher capacity (`capacity_monotone_invTemp`).
+This is where the physics connection becomes concrete. Noise variance and inverse temperature are interchangeable through the mapping $\beta = 1/(2\sigma^2)$. The round-trip identity `noiseToInvTemp_invTempToNoise` confirms this bijection. Higher inverse temperature (lower noise) means higher capacity (`capacity_monotone_invTemp`).
 
 For spatially embedded systems, channel capacity depends on the distance between communicating roles. The `SpatialChannelModel` structure specifies signal power and a distance-dependent noise function. The theorem `spatialCapacity_antitone` shows capacity decreases with distance. Colocated roles achieve maximum capacity (`colocated_max_capacity`).

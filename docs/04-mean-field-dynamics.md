@@ -1,6 +1,12 @@
 # Mean-Field Dynamics
 
-This document covers population dynamics on the probability simplex. The mean-field layer formalizes ODE existence, uniqueness, and stability for drift functions built from stoichiometric rules. For the convex analysis underpinning stability, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
+Many systems in Gibbs reduce to populations of agents in a finite number of states. Molecules in a chemical reaction network switch between species. Spins in an Ising model flip between up and down. Nodes in a consensus protocol vote for different values. In each case, the macroscopic behavior depends not on individual agents but on the fraction of the population in each state.
+
+This chapter formalizes how those fractions evolve over time. The state of a population lives on the probability simplex, the set of all valid distributions over a finite state space. Drift functions describe how the distribution changes. Rules (reaction rates, flip rates, vote-switching rates) compose into drift functions. The key results are that solutions always exist, always stay on the simplex, and converge to equilibrium under appropriate conditions.
+
+The stability theory here connects back to convex duality (Chapter 3): the Bregman divergence to equilibrium serves as a Lyapunov function, providing a formal proof that the system converges. The Ising model serves as the concrete example that ties the layer together, exhibiting a phase transition between disordered and ordered states that reappears in the consensus setting (Chapter 7).
+
+For the convex analysis underpinning stability, see [Convex Duality and Bregman Divergence](03-convex-duality.md). For the application to consensus, see [Consensus as Statistical Mechanics](07-consensus-statistical-mechanics.md).
 
 ## The Probability Simplex
 
@@ -14,7 +20,7 @@ The simplex is compact (closed and bounded in finite dimensions). This compactne
 
 ## Drift Functions and Rules
 
-A `DriftFunction Q` maps a state $x : Q \to \mathbb{R}$ to a velocity $F(x) : Q \to \mathbb{R}$. Two constraints ensure the simplex is forward-invariant:
+The drift function specifies how the distribution changes at each instant. A `DriftFunction Q` maps a state $x : Q \to \mathbb{R}$ to a velocity $F(x) : Q \to \mathbb{R}$. Two constraints ensure the simplex is forward-invariant:
 
 1. Conservation: $\sum_q F(x)_q = 0$ for all $x$ on the simplex.
 2. Boundary: $F(x)_q \geq 0$ whenever $x_q = 0$.
@@ -25,7 +31,7 @@ Drift functions are built compositionally from `PopRule` structures. Each rule s
 
 ## ODE Existence and Uniqueness
 
-The drift function is Lipschitz on the simplex by construction, but Mathlib's Picard-Lindelöf theorem requires a globally Lipschitz function. The `LipschitzBridge.lean` module extends the drift from the simplex to all of $\mathbb{R}^Q$ while preserving the Lipschitz constant. The theorem `extend_lipschitz` establishes this.
+Before analyzing where solutions go, we need to know they exist. The drift function is Lipschitz on the simplex by construction, but Mathlib's Picard-Lindelof theorem requires a globally Lipschitz function. The `LipschitzBridge.lean` module extends the drift from the simplex to all of $\mathbb{R}^Q$ while preserving the Lipschitz constant. The theorem `extend_lipschitz` establishes this.
 
 Local existence follows from Picard-Lindelöf on a bounded ball containing the simplex. The `local_ode_exists` theorem in `Existence.lean` constructs the `IsPicardLindelof` instance with explicit parameters: time half-width, ball radius (simplex diameter), Lipschitz constant, and drift bound.
 
@@ -43,7 +49,9 @@ The Bregman divergence connects these approaches. For a strictly convex generato
 
 ## The Ising Model
 
-The mean-field Ising model is the concrete example that ties the layer together. The state space is `TwoState` with values `up` and `down`. The magnetization order parameter is $m = x_{\text{up}} - x_{\text{down}}$.
+The simplest nontrivial mean-field system has two states: up and down. This is the Ising model, and it exhibits the core phenomenon that drives the consensus layer. Below a critical temperature, the population spontaneously magnetizes. Above it, the population remains disordered. This phase transition is the prototype for the gapped/gapless distinction in consensus (Chapter 7).
+
+The state space is `TwoState` with values `up` and `down`. The magnetization order parameter is $m = x_{\text{up}} - x_{\text{down}}$.
 
 The drift function is:
 
@@ -55,4 +63,4 @@ A phase transition occurs at $\beta J = 1$ when $h = 0$. Below the critical poin
 
 Above the critical point ($\beta J > 1$), two nonzero equilibria appear (ferromagnetic phase). The proof in `ferromagnetic_bistable` applies the intermediate value theorem to the residual $f(m) = m - \tanh(\beta J m)$, which changes sign on $(0, 1)$.
 
-Glauber dynamics provides the microscopic mechanism. The spin-flip rates `glauberAlpha` and `glauberGamma` reproduce the macroscopic Ising drift when aggregated, proved in `glauber_produces_isingDrift`.
+Glauber dynamics provides the microscopic mechanism: individual spins flip at rates that depend on the local field. The spin-flip rates `glauberAlpha` and `glauberGamma` reproduce the macroscopic Ising drift when aggregated, proved in `glauber_produces_isingDrift`. This is the mean-field reduction in action. Individual stochastic transitions produce deterministic macroscopic flow.
