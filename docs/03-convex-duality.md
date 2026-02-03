@@ -10,13 +10,13 @@ For the phase-space setting, see [Hamiltonian Mechanics](02-hamiltonian-mechanic
 
 ## Legendre Transform
 
-Given a convex energy function, the Legendre transform produces its dual description. If $f$ describes energy as a function of position, $f^*$ describes it as a function of momentum, and vice versa.
+Given a convex energy function, the Legendre transform produces its dual description. If $f$ describes energy as a function of position, $f^\*$ describes it as a function of momentum, and vice versa.
 
 The Legendre transform (convex conjugate) of a function $f$ maps each dual vector $p$ to the tightest affine upper bound on $\langle p, x \rangle - f(x)$:
 
-$$f^*(p) = \sup_x \left( \langle p, x \rangle - f(x) \right)$$
+$$f^\*(p) = \sup_x \left( \langle p, x \rangle - f(x) \right)$$
 
-For the quadratic $f(x) = \frac{1}{2}\|x\|^2$, the conjugate is $f^*(p) = \frac{1}{2}\|p\|^2$. The Legendre transform is self-dual in this case. For strongly convex functions, the conjugate has a Lipschitz gradient, and vice versa. This duality between strong convexity and smoothness underlies the condition number $L/m$ that controls convergence rates.
+For the quadratic $f(x) = \frac{1}{2}\|x\|^2$, the conjugate is $f^\*(p) = \frac{1}{2}\|p\|^2$. The Legendre transform is self-dual in this case. For strongly convex functions, the conjugate has a Lipschitz gradient, and vice versa. This duality between strong convexity and smoothness underlies the condition number $L/m$ that controls convergence rates.
 
 The definition `legendre` in `Legendre.lean` computes the conjugate as a supremum. The Fenchel-Young inequality $\langle p, x \rangle \leq f(x) + f^*(p)$ follows immediately from the definition of supremum.
 
@@ -38,9 +38,9 @@ The theorem states that a lower-semicontinuous convex function equals its double
 
 $$f = f^{**}$$
 
-The proof in `FenchelMoreau.lean` proceeds in two directions. The inequality $f^{**} \leq f$ follows from two applications of the Fenchel-Young inequality. The reverse inequality requires showing that every point $(x, f(x))$ on the graph of $f$ lies on or above the graph of $f^{**}$.
+The proof in `FenchelMoreau.lean` proceeds in two directions. The inequality $f^{\*\*} \leq f$ follows from two applications of the Fenchel-Young inequality. The reverse inequality requires showing that every point $(x, f(x))$ on the graph of $f$ lies on or above the graph of $f^{\*\*}$.
 
-The reverse direction uses geometric Hahn-Banach separation. Because $f$ is convex and lower-semicontinuous, its epigraph $\{(x, t) : t \geq f(x)\}$ is a closed convex set. Any point strictly below the epigraph can be separated by a hyperplane, which yields a supporting affine function and hence a subgradient. The existence of subgradients everywhere implies $f \leq f^{**}$.
+The reverse direction uses geometric Hahn-Banach separation. Because $f$ is convex and lower-semicontinuous, its epigraph $\{(x, t) : t \geq f(x)\}$ is a closed convex set. Any point strictly below the epigraph can be separated by a hyperplane, which yields a supporting affine function and hence a subgradient. The existence of subgradients everywhere implies $f \leq f^{\*\*}$.
 
 The hypotheses for `fenchel_moreau` are `ConvexOn ℝ Set.univ f`, `LowerSemicontinuous f`, `HasFiniteConjugate f`, and `HasFiniteBiconjugate f`. The finiteness conditions exclude degenerate cases where the conjugate is identically $+\infty$ or $-\infty$.
 
@@ -56,7 +56,7 @@ The `softmax` function computes the exponentially-weighted normalized distributi
 
 ## Connection to Stability
 
-This is where convex duality meets dynamics. The Bregman divergence provides Lyapunov functions for mean-field dynamics. If $x^*$ is an equilibrium and $f$ is strictly convex, then $V(x) = D_f(x, x^*)$ satisfies the Lyapunov conditions: it is nonneg, zero only at $x^*$, and (under appropriate drift conditions) decreasing along trajectories.
+This is where convex duality meets dynamics. The Bregman divergence provides Lyapunov functions for mean-field dynamics. If $x^\*$ is an equilibrium and $f$ is strictly convex, then $V(x) = D_f(x, x^\*)$ satisfies the Lyapunov conditions: it is nonneg, zero only at $x^\*$, and (under appropriate drift conditions) decreasing along trajectories.
 
 The `bregman_lyapunov_data` construction in `BregmanBridge.lean` packages this into a `StrictLyapunovData` structure. The bridge converts between `Config n` (Euclidean space representation) and `Fin n → ℝ` (simplex representation) using the `EuclideanSpace.equiv` round-trip identities `toConfig_fromConfig` and `fromConfig_toConfig`.
 

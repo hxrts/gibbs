@@ -39,13 +39,13 @@ Global existence follows from compactness. Since the simplex is bounded and the 
 
 ## Stability Theory
 
-An equilibrium $x^*$ satisfies $F(x^*) = 0$ and $x^* \in \text{Simplex}(Q)$. Stability is analyzed through two approaches.
+An equilibrium $x^\*$ satisfies $F(x^\*) = 0$ and $x^\* \in \text{Simplex}(Q)$. Stability is analyzed through two approaches.
 
-The direct (Lyapunov) approach uses a function $V$ that is nonneg, zero at $x^*$, and decreasing along trajectories. The theorem `lyapunov_implies_stable` gives stability. A strict Lyapunov function where $V \to 0$ along trajectories gives asymptotic stability via `strict_lyapunov_implies_asymptotic`.
+The direct (Lyapunov) approach uses a function $V$ that is nonneg, zero at $x^\*$, and decreasing along trajectories. The theorem `lyapunov_implies_stable` gives stability. A strict Lyapunov function where $V \to 0$ along trajectories gives asymptotic stability via `strict_lyapunov_implies_asymptotic`.
 
 The linearized (Hurwitz) approach examines the Jacobian $J = \partial F / \partial x$ at equilibrium. If all eigenvalues of $J$ have negative real part (the Hurwitz condition), a quadratic Lyapunov function exists. The chain `hurwitz_implies_lyapunov_exists` then `linear_stable_implies_asymptotic` completes the argument.
 
-The Bregman divergence connects these approaches. For a strictly convex generator $f$, $D_f(x, x^*)$ provides a natural Lyapunov function. The `bregman_lyapunov_data` construction in `BregmanBridge.lean` packages this as a `StrictLyapunovData`.
+The Bregman divergence connects these approaches. For a strictly convex generator $f$, $D_f(x, x^\*)$ provides a natural Lyapunov function. The `bregman_lyapunov_data` construction in `BregmanBridge.lean` packages this as a `StrictLyapunovData`.
 
 ## The Ising Model
 

@@ -138,7 +138,7 @@ Practical limitations (finite memory, numerical approximation) can be addressed 
 
 The correspondence runs in both directions. Physical systems provide analogues for distributed systems concepts.
 
-Consensus corresponds to spontaneous symmetry breaking. Above the critical temperature, no consensus forms ($m = 0$). Below it, consensus emerges spontaneously ($m \to \pm m^*$).
+Consensus corresponds to spontaneous symmetry breaking. Above the critical temperature, no consensus forms ($m = 0$). Below it, consensus emerges spontaneously ($m \to \pm m^\*$).
 
 Agreement maps to spin alignment. Validity maps to the chosen direction lying in the allowed set $\{+1, -1\}$. Termination maps to reaching the ordered phase.
 

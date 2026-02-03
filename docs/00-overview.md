@@ -1,6 +1,6 @@
 # Gibbs Overview
 
-Gibbs is a Lean 4 formalization of statistical mechanics within a session-type choreography framework. It provides machine-checked proofs connecting Hamiltonian mechanics, population dynamics, continuum field theory, and distributed consensus through shared mathematical structures. The codebase depends on Mathlib for analysis and algebra, and on Telltale for session-type and effects infrastructure.
+[Gibbs](https://github.com/hxrts/gibbs) is a Lean 4 formalization of statistical mechanics within a session-type choreography framework. It provides machine-checked proofs connecting Hamiltonian mechanics, population dynamics, continuum field theory, and distributed consensus through shared mathematical structures. The codebase depends on Mathlib for analysis and algebra, and on Telltale for session-type and effects infrastructure.
 
 ## Gibbs Modules
 
@@ -51,4 +51,4 @@ Two statements remain as Lean `axiom` declarations, both components of Shannon's
 - [Information Theory and Channels](06-information-theory.md) covers entropy, channels, and coding.
 - [Consensus as Statistical Mechanics](08-consensus-statistical-mechanics.md) presents the deepest synthesis.
 
-The full dependency tree with API tables per-file can be found in `Gibbs/CODE_MAP.md`.
+The full dependency tree with API tables per-file can be found in [Gibbs/CODE_MAP.md](https://github.com/hxrts/gibbs/blob/main/Gibbs/CODE_MAP.md).
