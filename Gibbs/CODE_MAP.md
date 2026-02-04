@@ -16,6 +16,7 @@ Gibbs/Session.lean
 │   ├── Hamiltonian/ConvexHamiltonian.lean
 │   │   ├── Hamiltonian/DampedFlow.lean
 │   │   │   ├── Hamiltonian/Choreography.lean
+│   │   │   │   └── Hamiltonian/GlobalType.lean
 │   │   │   ├── Hamiltonian/SymplecticFlow.lean
 │   │   │   ├── Hamiltonian/Examples/HarmonicOscillator.lean
 │   │   │   └── Hamiltonian/Examples/Langevin.lean
@@ -42,6 +43,7 @@ Gibbs/Session.lean
 │   │   ├── ContinuumField/Closure.lean
 │   │   ├── ContinuumField/Projection.lean
 │   │   ├── ContinuumField/EffectsIntegration.lean
+│   │   │   └── ContinuumField/GlobalType.lean
 │   │   └── ContinuumField/Examples/Anisotropic2D.lean
 │   └── ContinuumField/TimeBridge.lean
 │       ├── ContinuumField/SpatialBridge.lean
@@ -53,7 +55,8 @@ Gibbs/Session.lean
     ├── MeanField/Universality.lean
     └── MeanField/Choreography.lean
         ├── MeanField/Rules.lean
-        │   └── MeanField/Projection.lean
+        │   ├── MeanField/Projection.lean
+        │   └── MeanField/GlobalType.lean
         └── MeanField/LipschitzBridge.lean
             ├── MeanField/ODE.lean
             │   ├── MeanField/Existence.lean
@@ -349,6 +352,20 @@ Bridges Hamiltonian mechanics with session-type choreography by partitioning pha
 **Assumptions on `HamiltonianChoreography n`:**
 - `roles_partition : ∀ i, ∃! r, i ∈ roles r` — every coordinate is owned by exactly one role
 
+#### `Hamiltonian/GlobalType.lean`
+
+Encodes a `HamiltonianChoreography` as a Telltale `GlobalType`. One time step chains position exchanges then force exchanges for all coupled pairs, wrapped in `mu "step"` for iteration. Proves well-formedness by induction on the communication list.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `chainComms` | Chains `(sender, receiver, label)` triples into nested `comm` nodes |
+| def | `coupledPairs` | Directed edges from role list + coupling predicate |
+| theorem | `coupledPairs_noSelfComm` | All pairs have distinct components |
+| def | `HamiltonianChoreography.toGlobalType` | Encoding: position comms ++ force comms in `mu "step"` |
+| theorem | `HamiltonianChoreography.toGlobalType_wellFormed` | allVarsBound, allCommsNonEmpty, noSelfComm, isProductive |
+
+**Strategy**: induction on comm list for four helper lemmas, `List.exists_cons_of_length_pos` for productivity.
+
 #### `Hamiltonian/Entropy.lean`
 
 Finite Shannon entropy, KL divergence, marginals, and mutual information for discrete distributions.
@@ -603,6 +620,20 @@ Builds drift functions compositionally from lists of population rules. Conservat
 | def | `MeanFieldChoreography.fromRules` | Constructs choreography from rule list |
 
 **Strategy**: induction on `List`, Finset summation swaps, `by_cases` on state equality.
+
+#### `MeanField/GlobalType.lean`
+
+Encodes a `MeanFieldChoreography` as a Telltale `GlobalType`. Since mean-field models have no intrinsic roles, a `MeanFieldRoleAssignment` partitions species among roles. One time step chains concentration exchanges for all coupled pairs, wrapped in `mu "step"`.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| structure | `MeanFieldRoleAssignment Q` | Role names, species assignment, coverage proof |
+| def | `coupledPairs` | Directed edges from role list + coupling predicate |
+| theorem | `coupledPairs_noSelfComm` | All pairs have distinct components |
+| def | `MeanFieldChoreography.toGlobalType` | Encoding: concentration comms in `mu "step"` |
+| theorem | `MeanFieldChoreography.toGlobalType_wellFormed` | allVarsBound, allCommsNonEmpty, noSelfComm, isProductive |
+
+**Strategy**: induction on comm list for four helper lemmas, `List.exists_cons_of_length_pos` for productivity.
 
 #### `MeanField/LipschitzBridge.lean`
 
@@ -993,6 +1024,19 @@ Connects the continuum kernel to the effects/session-type framework. Each role i
 | def | `KernelCoherent` | Local kernels = projection of global |
 | theorem | `projection_sound` | Coherent locals reproduce global operator |
 
+#### `ContinuumField/GlobalType.lean`
+
+Encodes spatial field interactions as a Telltale `GlobalType`. Each role occupies a spatial location; nonlocal kernel coupling between locations becomes communication. One time step chains field exchanges for all coupled pairs, wrapped in `mu "step"`.
+
+| Kind | Name | Notes |
+|------|------|-------|
+| def | `coupledPairs` | Directed edges from role list + coupling predicate |
+| theorem | `coupledPairs_noSelfComm` | All pairs have distinct components |
+| def | `kernelToGlobalType` | Encoding: field comms in `mu "step"` |
+| theorem | `kernelToGlobalType_wellFormed` | allVarsBound, allCommsNonEmpty, noSelfComm, isProductive |
+
+**Strategy**: induction on comm list for four helper lemmas, `List.exists_cons_of_length_pos` for productivity.
+
 #### `ContinuumField/Closure.lean`
 
 | Kind | Name | Notes |
@@ -1075,7 +1119,7 @@ Self-contained mirror of the Effects system's spatial types (`Site`, `RoleName`,
 | `ciSup_le` / `le_ciSup` | FenchelMoreau | Fenchel–Young, biconjugate bounds |
 | Geometric Hahn–Banach | FenchelMoreau | Separation, supporting hyperplanes, Fenchel–Moreau |
 | Picard–Lindelöf + Gronwall | Existence, ODE | ODE existence and uniqueness |
-| Induction on `List` | Rules | Conservation and boundary invariance for aggregated rules |
+| Induction on `List` | Rules, GlobalType files | Conservation/boundary for rules, well-formedness for chained comms |
 | `by_cases` on state equality | Rules | Boundary nonnegativity (mass-action at zero) |
 | `antitone_of_hasDerivAt_nonpos` | DampedFlow | Energy monotone decrease |
 | Calculus on `lineMap` | Legendre | Bregman nonnegativity via convexity of restrictions to lines |
